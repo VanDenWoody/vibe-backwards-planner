@@ -27,6 +27,7 @@ const hintEl = document.querySelector("#hint");
 const stepsEl = document.querySelector("#steps");
 const leaveEl = document.querySelector("#leave");
 const leaveTimeEl = document.querySelector("#leave-time");
+const leaveDateEl = document.querySelector("#leave-date");
 const leaveTotalEl = document.querySelector("#leave-total");
 const addStepEl = document.querySelector("#add-step");
 const newLabelEl = document.querySelector("#new-label");
@@ -141,7 +142,7 @@ function renderStructure() {
 }
 
 function renderTimes() {
-  const { deadlineAt, rows, leaveAt, totalMinutes } = computeSchedule(state);
+  const { deadlineAt, rows, leaveAt, leaveDayOffset, totalMinutes } = computeSchedule(state);
   const hasDeadline = deadlineAt !== null;
   const hasSteps = state.steps.length > 0;
 
@@ -175,12 +176,13 @@ function renderTimes() {
   }
 
   // With no steps the leave time only restates the deadline, so it is hidden.
-  // Its date appears whenever leaving is not today, which the day offset from
-  // the deadline cannot tell you on its own.
+  // Its date appears only when leaving falls on a different day than the
+  // deadline; on the same day it would only repeat the date in the header.
   leaveEl.hidden = !hasDeadline || !hasSteps;
   if (!leaveEl.hidden) {
-    leaveTimeEl.textContent = formatAt(leaveAt, !isToday(leaveAt));
-    leaveTotalEl.textContent = `${formatDuration(totalMinutes)} of steps`;
+    leaveTimeEl.textContent = timeFmt.format(leaveAt);
+    leaveDateEl.textContent = leaveDayOffset !== 0 ? `— ${dateFmt.format(leaveAt)}` : "";
+    leaveTotalEl.textContent = formatDuration(totalMinutes);
   }
 
   clearAllEl.hidden = !hasSteps;
