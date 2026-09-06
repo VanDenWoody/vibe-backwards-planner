@@ -6,6 +6,7 @@
   --text: #f9fafb;
   --muted: #9ca3af;
   --accent: #818cf8;
+  --danger: #f87171;
   --field: rgba(255, 255, 255, 0.04);
   --field-border: rgba(255, 255, 255, 0.1);
   --field-border-hover: rgba(255, 255, 255, 0.26);
@@ -280,21 +281,16 @@ input:focus {
   font-weight: 600;
 }
 
-.template__delete {
+.template__action--delete {
   margin-left: auto;
-  min-width: 44px;
-  min-height: 44px;
-  background: none;
-  border: 0;
-  color: var(--muted);
-  font-size: 1.4rem;
-  line-height: 1;
-  border-radius: var(--radius);
+  color: var(--danger);
 }
 
-.template__delete:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+/* Must follow .template__action:hover, which carries equal specificity: that
+   rule turns the label white, which is the wrong signal for this one. */
+.template__action--delete:hover {
+  color: var(--danger);
+  background: rgba(248, 113, 113, 0.12);
 }
 
 .naming {

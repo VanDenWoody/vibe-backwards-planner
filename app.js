@@ -244,9 +244,9 @@ function templateRow(template) {
 
   const remove = document.createElement("button");
   remove.type = "button";
-  remove.className = "template__delete";
+  remove.className = "template__action template__action--delete";
   remove.dataset.action = "delete";
-  remove.textContent = "×";
+  remove.textContent = "Delete";
   remove.setAttribute("aria-label", `Delete “${template.name}”`);
   actions.append(remove);
 
