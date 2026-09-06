@@ -438,7 +438,7 @@ input:focus {
   /* Pushed to the far end of the row, so it stays right-aligned whether or
      not the date sits between it and the time. */
   margin-left: auto;
-  font-size: 0.85rem;
+  font-size: 1.2rem;
   color: var(--muted);
 }
 

@@ -181,7 +181,7 @@ function renderTimes() {
   leaveEl.hidden = !hasDeadline || !hasSteps;
   if (!leaveEl.hidden) {
     leaveTimeEl.textContent = timeFmt.format(leaveAt);
-    leaveDateEl.textContent = leaveDayOffset !== 0 ? `— ${dateFmt.format(leaveAt)}` : "";
+    leaveDateEl.textContent = leaveDayOffset !== 0 ? `— ${dayFmt.format(leaveAt)}` : "";
     leaveTotalEl.textContent = formatDuration(totalMinutes);
   }
 
