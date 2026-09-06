@@ -161,9 +161,17 @@ input:focus {
   padding: 0.5rem;
   font: inherit;
   color: var(--text);
-  background: var(--field);
+  /* Opaque, unlike the translucent --field the inputs use. A select's dropdown
+     is drawn by the platform, not the page, so a translucent background gives
+     up the dark ground behind it and leaves light text on a light menu. */
+  background: var(--surface);
   border: 1px solid var(--field-border);
   border-radius: var(--radius);
+}
+
+.templates__picker option {
+  background: var(--surface);
+  color: var(--text);
 }
 
 .templates__picker:hover {
