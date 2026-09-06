@@ -150,3 +150,11 @@ deadlineWhenEl.value = state.deadline;
 deadlineLabelEl.value = state.deadlineLabel;
 renderStructure();
 renderTimes();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+      // Not a secure context, or the browser refused. The app works regardless.
+    });
+  });
+}
