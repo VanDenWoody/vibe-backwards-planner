@@ -11,6 +11,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -85,7 +89,7 @@ input:focus {
 
 .step {
   display: grid;
-  grid-template-columns: 4.5rem 1fr 3.5rem auto 44px;
+  grid-template-columns: minmax(4.5rem, max-content) 1fr 3.5rem auto 44px;
   align-items: center;
   gap: 0.25rem;
   background: var(--surface);
@@ -102,6 +106,14 @@ input:focus {
   color: var(--muted);
   padding-left: 0.75rem;
   font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.step__label {
+  /* Inputs default to an intrinsic min-width based on the size attribute,
+     which stops the 1fr track from shrinking and starves .step__time of
+     the room it needs for the cross-midnight date suffix. */
+  min-width: 0;
 }
 
 .step__minutes {
@@ -132,6 +144,7 @@ input:focus {
 
 .leave {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
@@ -151,6 +164,7 @@ input:focus {
   font-size: 2rem;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
+  white-space: nowrap;
 }
 
 .add-step {

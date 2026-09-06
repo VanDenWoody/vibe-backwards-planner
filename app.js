@@ -85,9 +85,7 @@ function renderTimes() {
     li.classList.toggle("step--zero", row ? row.minutes === 0 : false);
   }
 
-  if (hasDeadline) {
-    leaveTimeEl.textContent = formatAt(leaveAt, leaveDayOffset);
-  }
+  leaveTimeEl.textContent = hasDeadline ? formatAt(leaveAt, leaveDayOffset) : "";
 }
 
 deadlineWhenEl.addEventListener("input", () => {

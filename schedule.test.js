@@ -93,3 +93,12 @@ test("a missing or non-array steps list is tolerated", () => {
   assert.deepEqual(result.rows, []);
   assert.equal(local(result.leaveAt), "2026-09-12T15:00");
 });
+
+test("numeric strings are NOT accepted — callers must coerce first", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T15:00",
+    steps: [step("a", "Looks numeric but isn't", "30")],
+  });
+  assert.equal(result.rows[0].minutes, 0);
+  assert.equal(local(result.leaveAt), "2026-09-12T15:00");
+});

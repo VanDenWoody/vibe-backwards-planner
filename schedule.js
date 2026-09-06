@@ -7,6 +7,9 @@ function parseDeadline(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// Callers MUST pass a real number here. A numeric string (e.g. "30") fails
+// Number.isFinite and silently becomes 0 — it is not coerced for you. Use
+// coerceMinutes from plan.js at the point user input enters the system.
 function toMinutes(value) {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
