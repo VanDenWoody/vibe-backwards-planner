@@ -11,6 +11,15 @@
   <body>
     <main class="app">
       <header class="deadline">
+        <span class="deadline__when">
+          <span id="deadline-time" class="deadline__time" aria-hidden="true"></span>
+          <input
+            id="deadline-input"
+            class="deadline__input"
+            type="datetime-local"
+            aria-label="Deadline date and time"
+          />
+        </span>
         <input
           id="deadline-label"
           class="deadline__label"
@@ -19,20 +28,18 @@
           autocomplete="off"
           aria-label="Deadline name"
         />
-        <input
-          id="deadline-when"
-          class="deadline__when"
-          type="datetime-local"
-          aria-label="Deadline date and time"
-        />
+        <span id="deadline-date" class="deadline__date" aria-hidden="true"></span>
       </header>
 
-      <p id="empty-hint" class="hint" hidden>Set a deadline to see your schedule.</p>
+      <p id="hint" class="hint" hidden></p>
 
       <ol id="steps" class="steps"></ol>
 
       <footer id="leave" class="leave" hidden>
-        <span class="leave__caption">Leave</span>
+        <span class="leave__label">
+          <span class="leave__caption">Leave</span>
+          <span id="leave-total" class="leave__total"></span>
+        </span>
         <strong id="leave-time" class="leave__time"></strong>
       </footer>
 
@@ -53,12 +60,21 @@
           inputmode="numeric"
           min="0"
           step="1"
-          placeholder="30"
+          placeholder="min"
           aria-label="Minutes"
         />
         <button class="add-step__submit" type="submit">Add</button>
       </form>
+
+      <p class="actions">
+        <button id="clear-all" class="clear-all" type="button" hidden>Clear all steps</button>
+      </p>
     </main>
+
+    <div id="undo" class="undo" role="status" aria-live="polite" hidden>
+      <span id="undo-message" class="undo__message"></span>
+      <button id="undo-action" class="undo__action" type="button">Undo</button>
+    </div>
 
     <script type="module" src="./app.js"></script>
   </body>

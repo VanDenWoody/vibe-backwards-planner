@@ -102,3 +102,53 @@ test("numeric strings are NOT accepted — callers must coerce first", () => {
   assert.equal(result.rows[0].minutes, 0);
   assert.equal(local(result.leaveAt), "2026-09-12T15:00");
 });
+
+test("totalMinutes is zero with no steps", () => {
+  const result = computeSchedule({ deadline: "2026-09-12T15:00", steps: [] });
+  assert.equal(result.totalMinutes, 0);
+});
+
+test("totalMinutes sums the coerced step durations", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T15:00",
+    steps: [step("a", "Passport control", 30), step("b", "Train ride", 45)],
+  });
+  assert.equal(result.totalMinutes, 75);
+});
+
+test("totalMinutes counts anything uncountable as zero", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T15:00",
+    steps: [step("a", "Real", 20), step("b", "Blank", ""), step("c", "Negative", -30)],
+  });
+  assert.equal(result.totalMinutes, 20);
+});
+
+test("totalMinutes agrees with the distance from deadline to leave time", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T01:30",
+    steps: [step("a", "Check in", 60), step("b", "Drive", 90)],
+  });
+  const spanned = (new Date("2026-09-12T01:30").getTime() - result.leaveAt.getTime()) / 60000;
+  assert.equal(result.totalMinutes, spanned);
+});
+
+test("an unset deadline reports no total", () => {
+  const result = computeSchedule({ deadline: "", steps: [step("a", "Security", 30)] });
+  assert.equal(result.totalMinutes, 0);
+});
+
+test("deadlineAt is the parsed deadline the schedule was built from", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T15:00",
+    steps: [step("a", "Passport control", 30)],
+  });
+  assert.equal(local(result.deadlineAt), "2026-09-12T15:00");
+});
+
+test("deadlineAt is null when the deadline is unset or unparseable", () => {
+  for (const deadline of ["", "not a date", null, undefined]) {
+    const result = computeSchedule({ deadline, steps: [] });
+    assert.equal(result.deadlineAt, null, `deadline: ${String(deadline)}`);
+  }
+});

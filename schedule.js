@@ -23,7 +23,7 @@ function dayNumber(date) {
 export function computeSchedule({ deadline, steps }) {
   const deadlineDate = parseDeadline(deadline);
   if (deadlineDate === null) {
-    return { rows: [], leaveAt: null, leaveDayOffset: 0 };
+    return { deadlineAt: null, rows: [], leaveAt: null, leaveDayOffset: 0, totalMinutes: 0 };
   }
 
   const list = Array.isArray(steps) ? steps : [];
@@ -44,5 +44,12 @@ export function computeSchedule({ deadline, steps }) {
   });
 
   const leaveAt = new Date(cursor);
-  return { rows, leaveAt, leaveDayOffset: dayNumber(leaveAt) - baseDay };
+  const totalMinutes = rows.reduce((sum, row) => sum + row.minutes, 0);
+  return {
+    deadlineAt: deadlineDate,
+    rows,
+    leaveAt,
+    leaveDayOffset: dayNumber(leaveAt) - baseDay,
+    totalMinutes,
+  };
 }
