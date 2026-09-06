@@ -138,52 +138,128 @@ input:focus {
   font-size: 0.85rem;
 }
 
-.templates {
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--field-border);
+  margin-bottom: 0.5rem;
+}
+
+.tab {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 0;
+  /* The underline doubles as the bottom border, so it sits on top of the
+     tablist's own line rather than adding a second one. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.templates-empty {
+  color: var(--muted);
+  margin: 0.5rem var(--gutter);
+}
+
+.templates-save-row {
+  margin: 0;
+}
+
+.templates-save {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px dashed var(--field-border-hover);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.templates-save:hover {
+  background: var(--field);
+}
+
+.template-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding: 0 var(--gutter);
 }
 
-.templates__row,
-.templates__naming {
+.template {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.6rem var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.template__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.template__in-use {
+  color: var(--accent);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.template__summary {
+  /* Its own line: the actions below it must not shift about as names and
+     durations change width. */
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.template__actions {
+  flex-basis: 100%;
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-.templates__picker {
-  /* The picker owns the free space; the actions stay at their intrinsic width
-     so a long template name never pushes them off a narrow screen. */
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0.5rem;
-  font: inherit;
-  color: var(--text);
-  /* Opaque, unlike the translucent --field the inputs use. A select's dropdown
-     is drawn by the platform, not the page, so a translucent background gives
-     up the dark ground behind it and leaves light text on a light menu. */
-  background: var(--surface);
-  border: 1px solid var(--field-border);
-  border-radius: var(--radius);
-}
-
-.templates__picker option {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.templates__picker:hover {
-  border-color: var(--field-border-hover);
-}
-
-.templates__picker:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.templates__action {
+.template__action {
   min-height: 44px;
   padding: 0 0.5rem;
   border: 0;
@@ -194,12 +270,18 @@ input:focus {
   white-space: nowrap;
 }
 
-.templates__action:hover {
+.template__action:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
 }
 
-.templates__delete {
+.template__action--load {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.template__delete {
+  margin-left: auto;
   min-width: 44px;
   min-height: 44px;
   background: none;
@@ -210,18 +292,25 @@ input:focus {
   border-radius: var(--radius);
 }
 
-.templates__delete:hover {
+.template__delete:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
 }
 
-.templates__name {
-  flex: 1;
-  min-width: 0;
-  background: var(--surface);
+.naming {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
 }
 
-.templates__submit {
+.naming__input {
+  flex: 1;
+  min-width: 0;
+  background: var(--field);
+}
+
+.naming__submit {
   min-height: 44px;
   padding: 0 1rem;
   border: 0;
@@ -231,8 +320,23 @@ input:focus {
   font-weight: 600;
 }
 
-.templates__submit:active {
+.naming__submit:active {
   filter: brightness(0.9);
+}
+
+.naming__cancel {
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.naming__cancel:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .hint {

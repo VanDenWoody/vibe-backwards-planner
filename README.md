@@ -65,12 +65,22 @@ plan, `normalizeLibrary` drops only the items that are malformed: templates are
 independent of each other, and losing the library to one bad entry would be the
 wrong trade.
 
-Which template Update writes to is remembered, and persisted, so overwriting
-stays one tap after a reload instead of retyping the name. A name already in use
-is refused inline, the way an unnamed step is, since overwriting is what Update
-is for. Loading, saving, updating and deleting are all undoable, which is why
-`pending` holds a closure that puts the previous state back rather than a list of
-removed steps: what needs restoring differs between a step and a template.
+The app is two tabs. Planning is the schedule and nothing else; Templates is
+where the library is managed, so template chrome never sits between the deadline
+and the steps. The tab bar stays put even when both tabs are nearly empty, since
+chrome that appears and disappears is more disorienting than an empty row. Which
+tab you were on is deliberately not persisted: reopening the app into a
+management screen would be a strange place to land.
+
+Every row carries its own Load, Update, Rename and delete, and Update overwrites
+that row with whatever is in the planner now. `activeId` survives as the In use
+marker, which is what it always was — it says where the current plan came from.
+A name already in use is refused inline, the way an unnamed step is, and
+renaming a template to the name it already has closes the field quietly rather
+than announcing a rename that did not happen. Loading, saving, updating,
+renaming and deleting are all undoable, which is why `pending` holds a closure
+that puts the previous state back rather than a list of removed steps: what
+needs restoring differs between a step and a template.
 
 The spec and implementation plan live in `docs/superpowers/`. They record the
 original design and are not updated as the app moves on.

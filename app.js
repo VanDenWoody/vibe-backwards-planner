@@ -35,15 +35,13 @@ const clearAllEl = document.querySelector("#clear-all");
 const undoEl = document.querySelector("#undo");
 const undoMessageEl = document.querySelector("#undo-message");
 const undoActionEl = document.querySelector("#undo-action");
-const templatesEl = document.querySelector("#templates");
-const pickerEl = document.querySelector("#template-picker");
-const updateEl = document.querySelector("#template-update");
+const tabsEl = document.querySelector(".tabs");
+const tabEls = [...document.querySelectorAll(".tab")];
+const planningTabEl = document.querySelector("#tab-planning");
+const templatesTabEl = document.querySelector("#tab-templates");
 const saveTemplateEl = document.querySelector("#template-save");
-const deleteTemplateEl = document.querySelector("#template-delete");
-const namingEl = document.querySelector("#template-name-form");
-const nameEl = document.querySelector("#template-name");
-const cancelNameEl = document.querySelector("#template-cancel");
-const templatesRowEl = document.querySelector(".templates__row");
+const templateListEl = document.querySelector("#template-list");
+const templatesEmptyEl = document.querySelector("#templates-empty");
 
 const timeFmt = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -64,6 +62,11 @@ let library = loadTemplates();
 // saved. Persisted, so Update survives a reload of the installed app.
 let activeId = loadActiveTemplateId();
 if (findTemplate(library, activeId) === undefined) activeId = "";
+
+// Which name is being typed, and what for: null, {kind:"new"}, or
+// {kind:"rename", id}. The field is rendered into the list rather than kept in
+// the markup, so a rename can appear in the row it belongs to.
+let naming = null;
 
 // A destructive action applies immediately and parks an undo here for UNDO_MS.
 // The parked value is a closure that puts the previous state back — including
@@ -188,42 +191,147 @@ function setActive(id) {
   saveActiveTemplateId(id);
 }
 
-function renderTemplates() {
-  const active = findTemplate(library, activeId);
-  if (active === undefined) activeId = "";
+function summarize(template) {
+  const count = template.steps.length;
+  if (count === 0) return "No steps";
+  const total = template.steps.reduce((sum, step) => sum + step.minutes, 0);
+  return `${count} step${count === 1 ? "" : "s"} · ${formatDuration(total)}`;
+}
 
-  pickerEl.replaceChildren();
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "Load a template…";
-  pickerEl.append(placeholder);
+function templateRow(template) {
+  const li = document.createElement("li");
+  li.className = "template";
+  li.dataset.id = template.id;
+
+  const name = document.createElement("span");
+  name.className = "template__name";
+  name.textContent = template.name;
+  li.append(name);
+
+  if (template.id === activeId) {
+    const inUse = document.createElement("span");
+    inUse.className = "template__in-use";
+    inUse.textContent = "In use";
+    li.append(inUse);
+  }
+
+  const summary = document.createElement("span");
+  summary.className = "template__summary";
+  summary.textContent = summarize(template);
+  li.append(summary);
+
+  const actions = document.createElement("div");
+  actions.className = "template__actions";
+
+  for (const [action, label] of [
+    ["load", "Load"],
+    ["update", "Update"],
+    ["rename", "Rename"],
+  ]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className =
+      action === "load" ? "template__action template__action--load" : "template__action";
+    button.dataset.action = action;
+    button.textContent = label;
+    // The row's name is a sibling, not part of the button, so the accessible
+    // name has to carry it or every row sounds identical.
+    button.setAttribute("aria-label", `${label} “${template.name}”`);
+    actions.append(button);
+  }
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "template__delete";
+  remove.dataset.action = "delete";
+  remove.textContent = "×";
+  remove.setAttribute("aria-label", `Delete “${template.name}”`);
+  actions.append(remove);
+
+  li.append(actions);
+  return li;
+}
+
+function namingRow(value, label) {
+  const li = document.createElement("li");
+  li.className = "template";
+
+  const form = document.createElement("form");
+  form.className = "naming";
+
+  const input = document.createElement("input");
+  input.className = "naming__input";
+  input.type = "text";
+  input.value = value;
+  input.placeholder = "Template name";
+  input.autocomplete = "off";
+  input.setAttribute("aria-label", label);
+
+  const submit = document.createElement("button");
+  submit.className = "naming__submit";
+  submit.type = "submit";
+  submit.textContent = "Save";
+
+  const cancel = document.createElement("button");
+  cancel.className = "naming__cancel";
+  cancel.type = "button";
+  cancel.dataset.action = "cancel";
+  cancel.textContent = "Cancel";
+
+  form.append(input, submit, cancel);
+  li.append(form);
+  return li;
+}
+
+function renderTemplates() {
+  if (findTemplate(library, activeId) === undefined) activeId = "";
+
+  templateListEl.replaceChildren();
+
+  if (naming !== null && naming.kind === "new") {
+    templateListEl.append(namingRow("", "Name this template"));
+  }
 
   for (const template of library.items) {
-    const option = document.createElement("option");
-    option.value = template.id;
-    option.textContent = template.name;
-    pickerEl.append(option);
+    const renaming =
+      naming !== null && naming.kind === "rename" && naming.id === template.id;
+    templateListEl.append(
+      renaming ? namingRow(template.name, `Rename “${template.name}”`) : templateRow(template)
+    );
   }
-  pickerEl.value = activeId;
 
-  // The picker is only useful once something has been saved, and there is
-  // nothing to save until a step exists. When both are true the row is empty,
-  // so the whole section goes.
-  const hasTemplates = library.items.length > 0;
   const hasSteps = state.steps.length > 0;
-  pickerEl.hidden = !hasTemplates;
-  saveTemplateEl.hidden = !hasSteps;
-  templatesEl.hidden = !hasTemplates && !hasSteps;
+  saveTemplateEl.hidden = !hasSteps || naming !== null;
+  templatesEmptyEl.hidden = library.items.length > 0 || naming !== null;
+  templatesEmptyEl.textContent = hasSteps
+    ? "Nothing saved yet. Save the plan you have and it will appear here."
+    : "Nothing saved yet. Build a plan on the Planning tab, then save it here.";
 
-  // The picker sitting beside them already shows the name, so the buttons stay
-  // short and carry it for screen readers instead.
-  updateEl.hidden = active === undefined;
-  deleteTemplateEl.hidden = active === undefined;
-  if (active !== undefined) {
-    updateEl.textContent = "Update";
-    updateEl.setAttribute("aria-label", `Update “${active.name}”`);
-    deleteTemplateEl.setAttribute("aria-label", `Delete “${active.name}”`);
+  // Rebuilding the list threw away whatever had focus, so the field that was
+  // just opened has to be handed it back.
+  if (naming !== null) {
+    const input = templateListEl.querySelector(".naming__input");
+    input.focus();
+    input.select();
   }
+}
+
+function setNaming(next) {
+  naming = next;
+  renderTemplates();
+}
+
+function selectTab(tab, { focus = true } = {}) {
+  for (const el of tabEls) {
+    const selected = el === tab;
+    el.setAttribute("aria-selected", String(selected));
+    el.tabIndex = selected ? 0 : -1;
+    document.querySelector(`#${el.getAttribute("aria-controls")}`).hidden = !selected;
+  }
+  if (focus) tab.focus();
+  // Leaving the tab abandons a half-typed name rather than keeping it waiting
+  // out of sight.
+  if (tab !== templatesTabEl && naming !== null) setNaming(null);
 }
 
 function render() {
@@ -379,25 +487,7 @@ function commitLibrary(next) {
   renderTemplates();
 }
 
-function showNaming(show) {
-  templatesRowEl.hidden = show;
-  namingEl.hidden = !show;
-  if (show) {
-    nameEl.value = "";
-    nameEl.setCustomValidity("");
-    nameEl.focus();
-  }
-}
-
-pickerEl.addEventListener("change", () => {
-  const template = findTemplate(library, pickerEl.value);
-  if (template === undefined) {
-    // The placeholder row. There is nothing to load, so put the selection back
-    // on whatever is active rather than leaving the picker reading empty.
-    pickerEl.value = activeId;
-    return;
-  }
-
+function loadTemplate(template) {
   const previousSteps = state.steps;
   const previousLabel = state.deadlineLabel;
   const previousActive = activeId;
@@ -410,6 +500,7 @@ pickerEl.addEventListener("change", () => {
   setActive(template.id);
   savePlan(state);
   render();
+  selectTab(planningTabEl, { focus: false });
 
   beginPending(`Loaded “${template.name}”`, () => {
     state.steps = previousSteps;
@@ -419,77 +510,141 @@ pickerEl.addEventListener("change", () => {
     savePlan(state);
     render();
   });
-});
+}
 
-updateEl.addEventListener("click", () => {
-  const active = findTemplate(library, activeId);
-  if (active === undefined) return;
-
+function updateTemplate(template) {
   const previous = library;
+  const previousActive = activeId;
   // createTemplate does the stripping and trimming; keeping the original id is
   // what turns the result from a new template into a replacement.
   const replacement = {
-    ...createTemplate(active.name, state.deadlineLabel, state.steps),
-    id: active.id,
+    ...createTemplate(template.name, state.deadlineLabel, state.steps),
+    id: template.id,
   };
-  commitLibrary(saveTemplate(library, replacement));
-
-  beginPending(`Updated “${active.name}”`, () => commitLibrary(previous));
-});
-
-saveTemplateEl.addEventListener("click", () => showNaming(true));
-cancelNameEl.addEventListener("click", () => showNaming(false));
-
-nameEl.addEventListener("input", () => {
-  nameEl.setCustomValidity("");
-});
-
-namingEl.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  const name = nameEl.value.trim();
-  if (name === "") {
-    nameEl.setCustomValidity("Give the template a name.");
-    nameEl.reportValidity();
-    return;
-  }
-  // Overwriting is what Update is for, so a taken name is refused here rather
-  // than raising a confirm dialog the rest of the app manages without.
-  const clash = findTemplateByName(library, name);
-  if (clash !== undefined) {
-    nameEl.setCustomValidity(`“${clash.name}” already exists. Load it and use Update.`);
-    nameEl.reportValidity();
-    return;
-  }
-
-  const template = createTemplate(name, state.deadlineLabel, state.steps);
-  const previous = library;
-  const previousActive = activeId;
 
   setActive(template.id);
-  commitLibrary(saveTemplate(library, template));
-  showNaming(false);
+  commitLibrary(saveTemplate(library, replacement));
 
-  beginPending(`Saved “${template.name}”`, () => {
+  beginPending(`Updated “${template.name}”`, () => {
     setActive(previousActive);
     commitLibrary(previous);
   });
+}
+
+function deleteTemplate(template) {
+  const previous = library;
+  const previousActive = activeId;
+
+  if (activeId === template.id) setActive("");
+  commitLibrary(removeTemplate(library, template.id));
+
+  beginPending(`Deleted “${template.name}”`, () => {
+    setActive(previousActive);
+    commitLibrary(previous);
+  });
+}
+
+for (const tab of tabEls) {
+  tab.addEventListener("click", () => selectTab(tab, { focus: false }));
+}
+
+tabsEl.addEventListener("keydown", (event) => {
+  const index = tabEls.indexOf(document.activeElement);
+  if (index === -1) return;
+
+  const last = tabEls.length - 1;
+  let next = null;
+  if (event.key === "ArrowRight") next = tabEls[index === last ? 0 : index + 1];
+  else if (event.key === "ArrowLeft") next = tabEls[index === 0 ? last : index - 1];
+  else if (event.key === "Home") next = tabEls[0];
+  else if (event.key === "End") next = tabEls[last];
+  if (next === null) return;
+
+  event.preventDefault();
+  selectTab(next);
 });
 
-deleteTemplateEl.addEventListener("click", () => {
-  const active = findTemplate(library, activeId);
-  if (active === undefined) return;
+saveTemplateEl.addEventListener("click", () => setNaming({ kind: "new" }));
+
+templateListEl.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (button === null) return;
+
+  if (button.dataset.action === "cancel") {
+    setNaming(null);
+    saveTemplateEl.focus();
+    return;
+  }
+
+  const template = findTemplate(library, button.closest("li.template").dataset.id);
+  if (template === undefined) return;
+
+  if (button.dataset.action === "load") loadTemplate(template);
+  else if (button.dataset.action === "update") updateTemplate(template);
+  else if (button.dataset.action === "rename") setNaming({ kind: "rename", id: template.id });
+  else if (button.dataset.action === "delete") deleteTemplate(template);
+});
+
+templateListEl.addEventListener("input", (event) => {
+  if (event.target.classList.contains("naming__input")) event.target.setCustomValidity("");
+});
+
+templateListEl.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (naming === null) return;
+
+  const input = event.target.querySelector(".naming__input");
+  const name = input.value.trim();
+  if (name === "") {
+    input.setCustomValidity("Give the template a name.");
+    input.reportValidity();
+    return;
+  }
+
+  // Overwriting is what Update is for, so a taken name is refused here rather
+  // than raising a confirm dialog the rest of the app manages without. A
+  // rename is allowed to keep its own name, which is what exceptId is for.
+  const exceptId = naming.kind === "rename" ? naming.id : undefined;
+  const clash = findTemplateByName(library, name, exceptId);
+  if (clash !== undefined) {
+    input.setCustomValidity(`“${clash.name}” already exists. Update that one instead.`);
+    input.reportValidity();
+    return;
+  }
 
   const previous = library;
   const previousActive = activeId;
 
-  setActive("");
-  commitLibrary(removeTemplate(library, active.id));
+  if (naming.kind === "new") {
+    const template = createTemplate(name, state.deadlineLabel, state.steps);
+    naming = null;
+    setActive(template.id);
+    commitLibrary(saveTemplate(library, template));
 
-  beginPending(`Deleted “${active.name}”`, () => {
-    setActive(previousActive);
-    commitLibrary(previous);
-  });
+    beginPending(`Saved “${template.name}”`, () => {
+      setActive(previousActive);
+      commitLibrary(previous);
+    });
+    return;
+  }
+
+  const template = findTemplate(library, naming.id);
+  naming = null;
+  if (template === undefined) {
+    renderTemplates();
+    return;
+  }
+
+  const was = template.name;
+  // Submitting an unchanged name is not a rename. Closing the row quietly beats
+  // announcing one and offering to undo something that never happened.
+  if (name === was) {
+    renderTemplates();
+    return;
+  }
+
+  commitLibrary(saveTemplate(library, { ...template, name }));
+  beginPending(`Renamed “${was}” to “${name}”`, () => commitLibrary(previous));
 });
 
 deadlineInputEl.value = state.deadline;

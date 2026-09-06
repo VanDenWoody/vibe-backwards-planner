@@ -10,88 +10,114 @@
   </head>
   <body>
     <main class="app">
-      <header class="deadline">
-        <span class="deadline__when">
-          <span id="deadline-time" class="deadline__time" aria-hidden="true"></span>
-          <input
-            id="deadline-input"
-            class="deadline__input"
-            type="datetime-local"
-            aria-label="Deadline date and time"
-          />
-        </span>
-        <input
-          id="deadline-label"
-          class="deadline__label"
-          type="text"
-          placeholder="Flight departs"
-          autocomplete="off"
-          aria-label="Deadline name"
-        />
-        <span id="deadline-date" class="deadline__date" aria-hidden="true"></span>
-      </header>
+      <div class="tabs" role="tablist" aria-label="Sections">
+        <button
+          id="tab-planning"
+          class="tab"
+          type="button"
+          role="tab"
+          aria-controls="panel-planning"
+          aria-selected="true"
+        >
+          Planning
+        </button>
+        <button
+          id="tab-templates"
+          class="tab"
+          type="button"
+          role="tab"
+          aria-controls="panel-templates"
+          aria-selected="false"
+          tabindex="-1"
+        >
+          Templates
+        </button>
+      </div>
 
-      <section id="templates" class="templates" aria-label="Templates">
-        <div class="templates__row">
-          <select id="template-picker" class="templates__picker" aria-label="Load a template">
-            <option value="">Load a template…</option>
-          </select>
-          <button id="template-update" class="templates__action" type="button" hidden></button>
-          <button id="template-save" class="templates__action" type="button">Save…</button>
-          <button id="template-delete" class="templates__delete" type="button" hidden>×</button>
-        </div>
-        <form id="template-name-form" class="templates__naming" hidden>
+      <section
+        id="panel-planning"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-planning"
+        tabindex="0"
+      >
+        <header class="deadline">
+          <span class="deadline__when">
+            <span id="deadline-time" class="deadline__time" aria-hidden="true"></span>
+            <input
+              id="deadline-input"
+              class="deadline__input"
+              type="datetime-local"
+              aria-label="Deadline date and time"
+            />
+          </span>
           <input
-            id="template-name"
-            class="templates__name"
+            id="deadline-label"
+            class="deadline__label"
             type="text"
-            placeholder="Name this template"
+            placeholder="Flight departs"
             autocomplete="off"
-            aria-label="Template name"
+            aria-label="Deadline name"
           />
-          <button class="templates__submit" type="submit">Save</button>
-          <button id="template-cancel" class="templates__action" type="button">Cancel</button>
+          <span id="deadline-date" class="deadline__date" aria-hidden="true"></span>
+        </header>
+
+        <p id="hint" class="hint" hidden></p>
+
+        <ol id="steps" class="steps"></ol>
+
+        <footer id="leave" class="leave" hidden>
+          <span class="leave__label">
+            <span class="leave__caption">Leave</span>
+            <span id="leave-total" class="leave__total"></span>
+          </span>
+          <strong id="leave-time" class="leave__time"></strong>
+        </footer>
+
+        <form id="add-step" class="add-step">
+          <input
+            id="new-label"
+            class="add-step__label"
+            type="text"
+            placeholder="Step before that…"
+            autocomplete="off"
+            aria-label="Step name"
+            required
+          />
+          <input
+            id="new-minutes"
+            class="add-step__minutes"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            step="1"
+            placeholder="min"
+            aria-label="Minutes"
+          />
+          <button class="add-step__submit" type="submit">Add</button>
         </form>
+
+        <p class="actions">
+          <button id="clear-all" class="clear-all" type="button" hidden>Clear all steps</button>
+        </p>
       </section>
 
-      <p id="hint" class="hint" hidden></p>
-
-      <ol id="steps" class="steps"></ol>
-
-      <footer id="leave" class="leave" hidden>
-        <span class="leave__label">
-          <span class="leave__caption">Leave</span>
-          <span id="leave-total" class="leave__total"></span>
-        </span>
-        <strong id="leave-time" class="leave__time"></strong>
-      </footer>
-
-      <form id="add-step" class="add-step">
-        <input
-          id="new-label"
-          class="add-step__label"
-          type="text"
-          placeholder="Step before that…"
-          autocomplete="off"
-          aria-label="Step name"
-          required
-        />
-        <input
-          id="new-minutes"
-          class="add-step__minutes"
-          type="number"
-          inputmode="numeric"
-          min="0"
-          step="1"
-          placeholder="min"
-          aria-label="Minutes"
-        />
-        <button class="add-step__submit" type="submit">Add</button>
-      </form>
-
-      <p class="actions">
-        <button id="clear-all" class="clear-all" type="button" hidden>Clear all steps</button>
-      </p>
+      <section
+        id="panel-templates"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-templates"
+        tabindex="0"
+        hidden
+      >
+        <p id="templates-empty" class="templates-empty" hidden></p>
+        <p class="templates-save-row">
+          <button id="template-save" class="templates-save" type="button" hidden>
+            Save current plan as template
+          </button>
+        </p>
+        <ul id="template-list" class="template-list"></ul>
+      </section>
     </main>
 
     <div id="undo" class="undo" role="status" aria-live="polite" hidden>
