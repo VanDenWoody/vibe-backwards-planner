@@ -1,4 +1,5 @@
 import { computeSchedule } from "./schedule.js";
+import { coerceMinutes, createStep } from "./plan.js";
 import { loadPlan, savePlan } from "./storage.js";
 
 const deadlineLabelEl = document.querySelector("#deadline-label");
@@ -7,6 +8,9 @@ const emptyHintEl = document.querySelector("#empty-hint");
 const stepsEl = document.querySelector("#steps");
 const leaveEl = document.querySelector("#leave");
 const leaveTimeEl = document.querySelector("#leave-time");
+const addStepEl = document.querySelector("#add-step");
+const newLabelEl = document.querySelector("#new-label");
+const newMinutesEl = document.querySelector("#new-minutes");
 
 const timeFmt = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -95,6 +99,51 @@ deadlineWhenEl.addEventListener("input", () => {
 deadlineLabelEl.addEventListener("input", () => {
   state.deadlineLabel = deadlineLabelEl.value;
   savePlan(state);
+});
+
+stepsEl.addEventListener("input", (event) => {
+  const li = event.target.closest("li.step");
+  if (li === null) return;
+
+  const step = state.steps.find((candidate) => candidate.id === li.dataset.id);
+  if (step === undefined) return;
+
+  if (event.target.classList.contains("step__label")) {
+    step.label = event.target.value;
+  } else if (event.target.classList.contains("step__minutes")) {
+    step.minutes = coerceMinutes(event.target.value);
+  } else {
+    return;
+  }
+
+  savePlan(state);
+  renderTimes();
+});
+
+stepsEl.addEventListener("click", (event) => {
+  const button = event.target.closest("button.step__delete");
+  if (button === null) return;
+
+  const li = button.closest("li.step");
+  state.steps = state.steps.filter((step) => step.id !== li.dataset.id);
+  savePlan(state);
+  renderStructure();
+  renderTimes();
+});
+
+addStepEl.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const label = newLabelEl.value.trim();
+  if (label === "") return;
+
+  state.steps.push(createStep(label, newMinutesEl.value));
+  savePlan(state);
+  renderStructure();
+  renderTimes();
+
+  addStepEl.reset();
+  newLabelEl.focus();
 });
 
 deadlineWhenEl.value = state.deadline;
