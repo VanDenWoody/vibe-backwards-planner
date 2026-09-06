@@ -1,5 +1,5 @@
 import { computeSchedule } from "./schedule.js";
-import { coerceMinutes, createStep } from "./plan.js";
+import { coerceMinutes, createStep, emptyPlan } from "./plan.js";
 import {
   createTemplate,
   findTemplate,
@@ -185,7 +185,7 @@ function renderTimes() {
     leaveTotalEl.textContent = formatDuration(totalMinutes);
   }
 
-  clearAllEl.hidden = !hasSteps;
+  renderClearButton();
 }
 
 function setActive(id) {
@@ -342,6 +342,14 @@ function render() {
   renderTemplates();
 }
 
+function planIsEmpty() {
+  return state.deadline === "" && state.deadlineLabel === "" && state.steps.length === 0;
+}
+
+function renderClearButton() {
+  clearAllEl.hidden = planIsEmpty();
+}
+
 function focusDeleteAt(index) {
   const rows = stepsEl.children;
   if (rows.length === 0) return;
@@ -398,6 +406,9 @@ deadlineInputEl.addEventListener("change", () => {
 deadlineLabelEl.addEventListener("input", () => {
   state.deadlineLabel = deadlineLabelEl.value;
   savePlan(state);
+  // Nothing else on screen reads the label, so a full render would be waste;
+  // but the button's visibility now depends on it, so it has to be told.
+  renderClearButton();
 });
 
 stepsEl.addEventListener("input", (event) => {
@@ -442,16 +453,29 @@ stepsEl.addEventListener("click", (event) => {
 });
 
 clearAllEl.addEventListener("click", () => {
-  const count = state.steps.length;
-  if (count === 0) return;
+  if (planIsEmpty()) return;
 
-  const removed = state.steps;
-  state.steps = [];
+  // A shallow copy is enough: emptyPlan hands back a fresh steps array rather
+  // than emptying this one, so the snapshot keeps pointing at the old steps.
+  const previous = { ...state };
+  const previousActive = activeId;
+
+  Object.assign(state, emptyPlan());
+  // Writing an input's value is banned during render, where it would eat the
+  // caret. Here the user is not typing, so the fields have to be told.
+  deadlineInputEl.value = "";
+  deadlineLabelEl.value = "";
+  // The plan no longer came from a template, so Update has nothing to write
+  // back to — leaving the pointer would aim it at an emptied plan.
+  setActive("");
   savePlan(state);
   render();
 
-  beginPending(`Cleared ${count} step${count === 1 ? "" : "s"}`, () => {
-    state.steps = removed;
+  beginPending("Cleared the plan", () => {
+    Object.assign(state, previous);
+    deadlineInputEl.value = state.deadline;
+    deadlineLabelEl.value = state.deadlineLabel;
+    setActive(previousActive);
     savePlan(state);
     render();
     focusDeleteAt(0);
