@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Backwards Planner</title>
+    <meta name="theme-color" content="#1f2937" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="deadline">
+        <input
+          id="deadline-label"
+          class="deadline__label"
+          type="text"
+          placeholder="Flight departs"
+          autocomplete="off"
+          aria-label="Deadline name"
+        />
+        <input
+          id="deadline-when"
+          class="deadline__when"
+          type="datetime-local"
+          aria-label="Deadline date and time"
+        />
+      </header>
+
+      <p id="empty-hint" class="hint" hidden>Set a deadline to see your schedule.</p>
+
+      <ol id="steps" class="steps"></ol>
+
+      <footer id="leave" class="leave" hidden>
+        <span class="leave__caption">Leave</span>
+        <strong id="leave-time" class="leave__time"></strong>
+      </footer>
+
+      <form id="add-step" class="add-step">
+        <input
+          id="new-label"
+          class="add-step__label"
+          type="text"
+          placeholder="Step before that…"
+          autocomplete="off"
+          required
+        />
+        <input
+          id="new-minutes"
+          class="add-step__minutes"
+          type="number"
+          inputmode="numeric"
+          min="0"
+          step="1"
+          placeholder="30"
+          aria-label="Minutes"
+        />
+        <button class="add-step__submit" type="submit">Add</button>
+      </form>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
