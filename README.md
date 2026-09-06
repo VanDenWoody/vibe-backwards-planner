@@ -1,6 +1,7 @@
 # Backwards Planner
 
-Set a deadline. Append the steps that have to happen before it. Read off when to leave.
+Set a deadline. Append the steps that have to happen before it. Read off when to
+leave. Save a routine you repeat as a template.
 
 A single-page PWA with no build step and no dependencies. Install it to an Android
 home screen and it works offline.
@@ -53,6 +54,23 @@ Deleting applies immediately and parks the removed step in memory for six
 seconds, so Undo can splice it back at the index it came from. Clearing every
 step takes the same path, which is why it needs no confirmation dialog. A
 pending undo is never persisted: reloading inside the window is a real delete.
+
+Templates live in their own store beside the plan, so the plan's shape and version
+never had to move. A template is a recipe rather than a plan: a name, the
+deadline's caption and the step list, but no date or time, since that is exactly
+what changes each time you use it. Its steps carry no ids — loading mints fresh
+ones through `createStep`, so the same template can be loaded twice without two
+rows ever sharing an identity. Where `normalizePlan` throws out a whole malformed
+plan, `normalizeLibrary` drops only the items that are malformed: templates are
+independent of each other, and losing the library to one bad entry would be the
+wrong trade.
+
+Which template Update writes to is remembered, and persisted, so overwriting
+stays one tap after a reload instead of retyping the name. A name already in use
+is refused inline, the way an unnamed step is, since overwriting is what Update
+is for. Loading, saving, updating and deleting are all undoable, which is why
+`pending` holds a closure that puts the previous state back rather than a list of
+removed steps: what needs restoring differs between a step and a template.
 
 The spec and implementation plan live in `docs/superpowers/`. They record the
 original design and are not updated as the app moves on.

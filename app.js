@@ -1,6 +1,21 @@
 import { computeSchedule } from "./schedule.js";
 import { coerceMinutes, createStep } from "./plan.js";
-import { loadPlan, savePlan } from "./storage.js";
+import {
+  createTemplate,
+  findTemplate,
+  findTemplateByName,
+  planStepsFrom,
+  removeTemplate,
+  saveTemplate,
+} from "./templates.js";
+import {
+  loadActiveTemplateId,
+  loadPlan,
+  loadTemplates,
+  savePlan,
+  saveActiveTemplateId,
+  saveTemplates,
+} from "./storage.js";
 
 const UNDO_MS = 6000;
 
@@ -20,6 +35,15 @@ const clearAllEl = document.querySelector("#clear-all");
 const undoEl = document.querySelector("#undo");
 const undoMessageEl = document.querySelector("#undo-message");
 const undoActionEl = document.querySelector("#undo-action");
+const templatesEl = document.querySelector("#templates");
+const pickerEl = document.querySelector("#template-picker");
+const updateEl = document.querySelector("#template-update");
+const saveTemplateEl = document.querySelector("#template-save");
+const deleteTemplateEl = document.querySelector("#template-delete");
+const namingEl = document.querySelector("#template-name-form");
+const nameEl = document.querySelector("#template-name");
+const cancelNameEl = document.querySelector("#template-cancel");
+const templatesRowEl = document.querySelector(".templates__row");
 
 const timeFmt = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -35,9 +59,16 @@ const dayFmt = new Intl.DateTimeFormat(undefined, {
 
 const state = loadPlan();
 
-// A delete applies immediately and parks its steps here for UNDO_MS, so Undo
-// can put them back at the indices they came from. Only one deletion is ever
-// pending: a second one commits the first.
+let library = loadTemplates();
+// The template the Update button writes to: whichever was last loaded or
+// saved. Persisted, so Update survives a reload of the installed app.
+let activeId = loadActiveTemplateId();
+if (findTemplate(library, activeId) === undefined) activeId = "";
+
+// A destructive action applies immediately and parks an undo here for UNDO_MS.
+// The parked value is a closure that puts the previous state back — including
+// persisting and re-rendering, since what needs saving differs between a step
+// and a template. Only one is ever pending: a second action commits the first.
 let pending = null;
 let pendingTimer = 0;
 
@@ -152,9 +183,53 @@ function renderTimes() {
   clearAllEl.hidden = !hasSteps;
 }
 
+function setActive(id) {
+  activeId = id;
+  saveActiveTemplateId(id);
+}
+
+function renderTemplates() {
+  const active = findTemplate(library, activeId);
+  if (active === undefined) activeId = "";
+
+  pickerEl.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Load a template…";
+  pickerEl.append(placeholder);
+
+  for (const template of library.items) {
+    const option = document.createElement("option");
+    option.value = template.id;
+    option.textContent = template.name;
+    pickerEl.append(option);
+  }
+  pickerEl.value = activeId;
+
+  // The picker is only useful once something has been saved, and there is
+  // nothing to save until a step exists. When both are true the row is empty,
+  // so the whole section goes.
+  const hasTemplates = library.items.length > 0;
+  const hasSteps = state.steps.length > 0;
+  pickerEl.hidden = !hasTemplates;
+  saveTemplateEl.hidden = !hasSteps;
+  templatesEl.hidden = !hasTemplates && !hasSteps;
+
+  // The picker sitting beside them already shows the name, so the buttons stay
+  // short and carry it for screen readers instead.
+  updateEl.hidden = active === undefined;
+  deleteTemplateEl.hidden = active === undefined;
+  if (active !== undefined) {
+    updateEl.textContent = "Update";
+    updateEl.setAttribute("aria-label", `Update “${active.name}”`);
+    deleteTemplateEl.setAttribute("aria-label", `Delete “${active.name}”`);
+  }
+}
+
 function render() {
   renderStructure();
   renderTimes();
+  renderTemplates();
 }
 
 function focusDeleteAt(index) {
@@ -173,9 +248,9 @@ function commitPending() {
   undoMessageEl.textContent = "";
 }
 
-function beginPending(entries, message) {
+function beginPending(message, restore) {
   commitPending();
-  pending = entries;
+  pending = restore;
   undoMessageEl.textContent = message;
   undoEl.hidden = false;
   pendingTimer = window.setTimeout(commitPending, UNDO_MS);
@@ -184,16 +259,9 @@ function beginPending(entries, message) {
 function undoPending() {
   if (pending === null) return;
 
-  const entries = pending;
+  const restore = pending;
   commitPending();
-
-  for (const entry of entries) {
-    state.steps.splice(Math.min(entry.index, state.steps.length), 0, entry.step);
-  }
-
-  savePlan(state);
-  render();
-  focusDeleteAt(entries[0].index);
+  restore();
 }
 
 // A click reaches the invisible control and focuses it, but on desktop that
@@ -254,10 +322,12 @@ stepsEl.addEventListener("click", (event) => {
   render();
 
   const name = removed.label.trim();
-  beginPending(
-    [{ step: removed, index }],
-    name === "" ? "Deleted a step" : `Deleted “${name}”`
-  );
+  beginPending(name === "" ? "Deleted a step" : `Deleted “${name}”`, () => {
+    state.steps.splice(Math.min(index, state.steps.length), 0, removed);
+    savePlan(state);
+    render();
+    focusDeleteAt(index);
+  });
   focusDeleteAt(index);
 });
 
@@ -265,12 +335,17 @@ clearAllEl.addEventListener("click", () => {
   const count = state.steps.length;
   if (count === 0) return;
 
-  const entries = state.steps.map((step, index) => ({ step, index }));
+  const removed = state.steps;
   state.steps = [];
   savePlan(state);
   render();
 
-  beginPending(entries, `Cleared ${count} step${count === 1 ? "" : "s"}`);
+  beginPending(`Cleared ${count} step${count === 1 ? "" : "s"}`, () => {
+    state.steps = removed;
+    savePlan(state);
+    render();
+    focusDeleteAt(0);
+  });
   undoActionEl.focus();
 });
 
@@ -296,6 +371,125 @@ addStepEl.addEventListener("submit", (event) => {
 
   addStepEl.reset();
   newLabelEl.focus();
+});
+
+function commitLibrary(next) {
+  library = next;
+  saveTemplates(library);
+  renderTemplates();
+}
+
+function showNaming(show) {
+  templatesRowEl.hidden = show;
+  namingEl.hidden = !show;
+  if (show) {
+    nameEl.value = "";
+    nameEl.setCustomValidity("");
+    nameEl.focus();
+  }
+}
+
+pickerEl.addEventListener("change", () => {
+  const template = findTemplate(library, pickerEl.value);
+  if (template === undefined) {
+    // The placeholder row. There is nothing to load, so put the selection back
+    // on whatever is active rather than leaving the picker reading empty.
+    pickerEl.value = activeId;
+    return;
+  }
+
+  const previousSteps = state.steps;
+  const previousLabel = state.deadlineLabel;
+  const previousActive = activeId;
+
+  state.steps = planStepsFrom(template);
+  state.deadlineLabel = template.deadlineLabel;
+  // Writing an input's value is banned during render, where it would eat the
+  // caret. Here the user is not typing, so the field has to be told.
+  deadlineLabelEl.value = state.deadlineLabel;
+  setActive(template.id);
+  savePlan(state);
+  render();
+
+  beginPending(`Loaded “${template.name}”`, () => {
+    state.steps = previousSteps;
+    state.deadlineLabel = previousLabel;
+    deadlineLabelEl.value = previousLabel;
+    setActive(previousActive);
+    savePlan(state);
+    render();
+  });
+});
+
+updateEl.addEventListener("click", () => {
+  const active = findTemplate(library, activeId);
+  if (active === undefined) return;
+
+  const previous = library;
+  // createTemplate does the stripping and trimming; keeping the original id is
+  // what turns the result from a new template into a replacement.
+  const replacement = {
+    ...createTemplate(active.name, state.deadlineLabel, state.steps),
+    id: active.id,
+  };
+  commitLibrary(saveTemplate(library, replacement));
+
+  beginPending(`Updated “${active.name}”`, () => commitLibrary(previous));
+});
+
+saveTemplateEl.addEventListener("click", () => showNaming(true));
+cancelNameEl.addEventListener("click", () => showNaming(false));
+
+nameEl.addEventListener("input", () => {
+  nameEl.setCustomValidity("");
+});
+
+namingEl.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const name = nameEl.value.trim();
+  if (name === "") {
+    nameEl.setCustomValidity("Give the template a name.");
+    nameEl.reportValidity();
+    return;
+  }
+  // Overwriting is what Update is for, so a taken name is refused here rather
+  // than raising a confirm dialog the rest of the app manages without.
+  const clash = findTemplateByName(library, name);
+  if (clash !== undefined) {
+    nameEl.setCustomValidity(`“${clash.name}” already exists. Load it and use Update.`);
+    nameEl.reportValidity();
+    return;
+  }
+
+  const template = createTemplate(name, state.deadlineLabel, state.steps);
+  const previous = library;
+  const previousActive = activeId;
+
+  setActive(template.id);
+  commitLibrary(saveTemplate(library, template));
+  showNaming(false);
+
+  beginPending(`Saved “${template.name}”`, () => {
+    setActive(previousActive);
+    commitLibrary(previous);
+  });
+});
+
+deleteTemplateEl.addEventListener("click", () => {
+  const active = findTemplate(library, activeId);
+  if (active === undefined) return;
+
+  const previous = library;
+  const previousActive = activeId;
+
+  setActive("");
+  commitLibrary(removeTemplate(library, active.id));
+
+  beginPending(`Deleted “${active.name}”`, () => {
+    setActive(previousActive);
+    commitLibrary(previous);
+  });
 });
 
 deadlineInputEl.value = state.deadline;

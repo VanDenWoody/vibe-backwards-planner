@@ -138,6 +138,95 @@ input:focus {
   font-size: 0.85rem;
 }
 
+.templates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 var(--gutter);
+}
+
+.templates__row,
+.templates__naming {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.templates__picker {
+  /* The picker owns the free space; the actions stay at their intrinsic width
+     so a long template name never pushes them off a narrow screen. */
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.5rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--field);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius);
+}
+
+.templates__picker:hover {
+  border-color: var(--field-border-hover);
+}
+
+.templates__picker:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.templates__action {
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.templates__action:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.templates__delete {
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  border-radius: var(--radius);
+}
+
+.templates__delete:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.templates__name {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+}
+
+.templates__submit {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #111827;
+  font-weight: 600;
+}
+
+.templates__submit:active {
+  filter: brightness(0.9);
+}
+
 .hint {
   color: var(--muted);
   margin: 0.5rem var(--gutter);

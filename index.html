@@ -31,6 +31,29 @@
         <span id="deadline-date" class="deadline__date" aria-hidden="true"></span>
       </header>
 
+      <section id="templates" class="templates" aria-label="Templates">
+        <div class="templates__row">
+          <select id="template-picker" class="templates__picker" aria-label="Load a template">
+            <option value="">Load a template…</option>
+          </select>
+          <button id="template-update" class="templates__action" type="button" hidden></button>
+          <button id="template-save" class="templates__action" type="button">Save…</button>
+          <button id="template-delete" class="templates__delete" type="button" hidden>×</button>
+        </div>
+        <form id="template-name-form" class="templates__naming" hidden>
+          <input
+            id="template-name"
+            class="templates__name"
+            type="text"
+            placeholder="Name this template"
+            autocomplete="off"
+            aria-label="Template name"
+          />
+          <button class="templates__submit" type="submit">Save</button>
+          <button id="template-cancel" class="templates__action" type="button">Cancel</button>
+        </form>
+      </section>
+
       <p id="hint" class="hint" hidden></p>
 
       <ol id="steps" class="steps"></ol>
