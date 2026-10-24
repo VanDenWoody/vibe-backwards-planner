@@ -19,7 +19,7 @@ function normalizeSteps(raw) {
   return steps;
 }
 
-function normalizeTemplate(raw) {
+export function normalizeTemplate(raw) {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
   if (typeof raw.id !== "string" || raw.id === "") return null;
   if (typeof raw.name !== "string" || raw.name === "") return null;
