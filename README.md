@@ -28,14 +28,14 @@ ES module imports and service workers both require a real origin.
 
 Runs `node --test` over the pure modules. No `npm install` required.
 
-## Sync (preview)
+## Sync
 
 Templates can sync between one person's devices through their own Google Drive.
-It is a preview behind a hidden flag until it has been tried on real devices:
+Sync is off until you turn it on in the sync row on the Templates tab:
 
-- Open the app with `#sync` at the end of the URL to show the sync row on the
-  Templates tab in this browser; `#nosync` hides it again. Without the flag no
-  sync code runs and Google's script is never loaded.
+- Google's sign-in script is fetched the first time the Templates tab opens, so
+  that **Turn on** can open Google's popup inside the tap. Nothing is sent to
+  Google until you tap **Turn on**.
 - **Turn on** asks Google for access to the app's own hidden Drive folder
   (`drive.appdata`) and your email address. Nothing else in your Drive is
   visible to the app.

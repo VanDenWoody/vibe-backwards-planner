@@ -9,8 +9,6 @@ export const STORAGE_KEY = "backwards-planner:v1";
 export const TEMPLATES_KEY = "backwards-planner:templates:v2";
 export const LEGACY_TEMPLATES_KEY = "backwards-planner:templates:v1";
 export const SYNC_KEY = "backwards-planner:sync:v1";
-// Set by opening the app with #sync; hides all sync UI and network until then.
-export const PREVIEW_KEY = "backwards-planner:sync-preview:v1";
 // Kept out of the plan record so the plan's shape and version need not move.
 export const ACTIVE_TEMPLATE_KEY = "backwards-planner:active-template:v1";
 
@@ -89,22 +87,5 @@ export function saveSyncState(state) {
     window.localStorage.setItem(SYNC_KEY, JSON.stringify(state));
   } catch {
     // Storage disabled or full. Sync state is rebuilt by the next sync.
-  }
-}
-
-export function loadSyncPreview() {
-  try {
-    return window.localStorage.getItem(PREVIEW_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function saveSyncPreview(on) {
-  try {
-    if (on) window.localStorage.setItem(PREVIEW_KEY, "1");
-    else window.localStorage.removeItem(PREVIEW_KEY);
-  } catch {
-    // Storage disabled. The flag simply does not stick.
   }
 }
