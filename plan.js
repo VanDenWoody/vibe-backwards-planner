@@ -24,6 +24,17 @@ export function createStep(label, minutes) {
   };
 }
 
+// Moves the step at index one place up (offset -1) or down (+1). A move past
+// either end is not an error: the order comes back unchanged, so a stale tap on
+// a button that has just become disabled does nothing.
+export function moveStep(steps, index, offset) {
+  const next = [...steps];
+  const target = index + offset;
+  if (index < 0 || index >= next.length || target < 0 || target >= next.length) return next;
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
 export function normalizePlan(raw) {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return emptyPlan();
   if (raw.version !== PLAN_VERSION) return emptyPlan();

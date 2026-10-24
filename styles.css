@@ -578,6 +578,43 @@ input:focus {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.step__move {
+  display: none;
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: var(--radius);
+}
+
+.step__move:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.step__move:disabled {
+  opacity: 0.25;
+}
+
+/* Reorder mode: minutes and delete give their room to the two arrows, so both
+   keep a full 44px target on a phone. */
+.steps--reordering .step {
+  grid-template-columns: var(--time-col) 1fr 44px 44px;
+}
+
+.steps--reordering .step__minutes,
+.steps--reordering .step__unit,
+.steps--reordering .step__delete {
+  display: none;
+}
+
+.steps--reordering .step__move {
+  display: block;
+}
+
 .leave {
   display: flex;
   flex-wrap: wrap;

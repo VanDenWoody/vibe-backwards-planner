@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PLAN_VERSION, emptyPlan, coerceMinutes, createStep, normalizePlan } from "./plan.js";
+import { PLAN_VERSION, emptyPlan, coerceMinutes, createStep, moveStep, normalizePlan } from "./plan.js";
 
 test("emptyPlan has the current version and no content", () => {
   assert.deepEqual(emptyPlan(), { version: PLAN_VERSION, deadline: "", deadlineLabel: "", steps: [] });
@@ -81,4 +81,25 @@ test("normalizePlan discards anything malformed", () => {
   for (const raw of rejects) {
     assert.deepEqual(normalizePlan(raw), emptyPlan(), `should reject: ${JSON.stringify(raw)}`);
   }
+});
+
+test("moveStep swaps a step with its neighbour", () => {
+  const steps = ["a", "b", "c"].map((id) => ({ id, label: id, minutes: 1 }));
+  assert.deepEqual(moveStep(steps, 1, -1).map((s) => s.id), ["b", "a", "c"]);
+  assert.deepEqual(moveStep(steps, 1, 1).map((s) => s.id), ["a", "c", "b"]);
+});
+
+test("moveStep leaves the order alone past either end", () => {
+  const steps = ["a", "b"].map((id) => ({ id, label: id, minutes: 1 }));
+  assert.deepEqual(moveStep(steps, 0, -1).map((s) => s.id), ["a", "b"]);
+  assert.deepEqual(moveStep(steps, 1, 1).map((s) => s.id), ["a", "b"]);
+  assert.deepEqual(moveStep(steps, 5, -1).map((s) => s.id), ["a", "b"]);
+});
+
+test("moveStep returns a new array and keeps the step objects", () => {
+  const steps = ["a", "b"].map((id) => ({ id, label: id, minutes: 1 }));
+  const moved = moveStep(steps, 0, 1);
+  assert.notEqual(moved, steps);
+  assert.deepEqual(steps.map((s) => s.id), ["a", "b"]);
+  assert.equal(moved[1], steps[0]);
 });

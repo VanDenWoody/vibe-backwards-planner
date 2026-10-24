@@ -1,5 +1,5 @@
 import { computeSchedule } from "./schedule.js";
-import { coerceMinutes, createStep, emptyPlan } from "./plan.js";
+import { coerceMinutes, createStep, emptyPlan, moveStep } from "./plan.js";
 import {
   createTemplate,
   findTemplate,
@@ -42,6 +42,7 @@ const addStepEl = document.querySelector("#add-step");
 const newLabelEl = document.querySelector("#new-label");
 const newMinutesEl = document.querySelector("#new-minutes");
 const clearAllEl = document.querySelector("#clear-all");
+const reorderEl = document.querySelector("#reorder");
 const undoEl = document.querySelector("#undo");
 const undoMessageEl = document.querySelector("#undo-message");
 const undoActionEl = document.querySelector("#undo-action");
@@ -89,6 +90,10 @@ if (findTemplate(library, activeId) === undefined) activeId = "";
 // the markup, so a rename can appear in the row it belongs to.
 let naming = null;
 
+// Reorder mode swaps each row's minutes and delete for move buttons. It is a
+// passing mode, not a setting: leaving the tab or reloading ends it.
+let reordering = false;
+
 // A destructive action applies immediately and parks an undo here for UNDO_MS.
 // The parked value is a closure that puts the previous state back — including
 // persisting and re-rendering, since what needs saving differs between a step
@@ -120,7 +125,7 @@ function formatDuration(minutes) {
 function renderStructure() {
   stepsEl.replaceChildren();
 
-  for (const step of state.steps) {
+  for (const [index, step] of state.steps.entries()) {
     const li = document.createElement("li");
     li.className = "step";
     li.dataset.id = step.id;
@@ -156,9 +161,50 @@ function renderStructure() {
     remove.textContent = "×";
     remove.setAttribute("aria-label", "Delete step");
 
-    li.append(time, label, minutes, unit, remove);
+    // Always built and shown only in reorder mode, so entering the mode is a
+    // class change rather than a rebuild that would drop focus.
+    const up = moveButton("up", "▲");
+    const down = moveButton("down", "▼");
+    up.disabled = index === 0;
+    down.disabled = index === state.steps.length - 1;
+
+    li.append(time, label, minutes, unit, remove, up, down);
+    nameMoveButtons(li, step.label);
     stepsEl.append(li);
   }
+}
+
+function moveButton(direction, text) {
+  const button = document.createElement("button");
+  button.className = `step__move step__move--${direction}`;
+  button.type = "button";
+  button.dataset.direction = direction;
+  button.textContent = text;
+  return button;
+}
+
+// The step's name is a sibling of the buttons, so their accessible names have
+// to carry it or every row sounds identical.
+function nameMoveButtons(li, label) {
+  const name = label.trim() === "" ? "step" : `“${label.trim()}”`;
+  for (const button of li.querySelectorAll(".step__move")) {
+    button.setAttribute("aria-label", `Move ${name} ${button.dataset.direction}`);
+  }
+}
+
+function renderReorder() {
+  // Fewer than two steps leaves nothing to reorder, so the mode ends itself.
+  if (state.steps.length < 2) reordering = false;
+  reorderEl.hidden = state.steps.length < 2;
+  reorderEl.textContent = reordering ? "Done" : "Reorder";
+  stepsEl.classList.toggle("steps--reordering", reordering);
+  addStepEl.hidden = reordering;
+  renderClearButton();
+}
+
+function setReordering(next) {
+  reordering = next;
+  renderReorder();
 }
 
 function renderTimes() {
@@ -369,11 +415,13 @@ function selectTab(tab, { focus = true } = {}) {
   // Leaving the tab abandons a half-typed name rather than keeping it waiting
   // out of sight.
   if (tab !== templatesTabEl && naming !== null) setNaming(null);
+  if (tab !== planningTabEl && reordering) setReordering(false);
 }
 
 function render() {
   renderStructure();
   renderTimes();
+  renderReorder();
   renderTemplates();
 }
 
@@ -382,7 +430,7 @@ function planIsEmpty() {
 }
 
 function renderClearButton() {
-  clearAllEl.hidden = planIsEmpty();
+  clearAllEl.hidden = planIsEmpty() || reordering;
 }
 
 function focusDeleteAt(index) {
@@ -466,6 +514,7 @@ stepsEl.addEventListener("input", (event) => {
 
   if (event.target.classList.contains("step__label")) {
     step.label = event.target.value;
+    nameMoveButtons(li, step.label);
   } else if (event.target.classList.contains("step__minutes")) {
     step.minutes = coerceMinutes(event.target.value);
   } else {
@@ -477,6 +526,12 @@ stepsEl.addEventListener("input", (event) => {
 });
 
 stepsEl.addEventListener("click", (event) => {
+  const move = event.target.closest("button.step__move");
+  if (move !== null) {
+    moveStepFrom(move);
+    return;
+  }
+
   const button = event.target.closest("button.step__delete");
   if (button === null) return;
 
@@ -497,6 +552,26 @@ stepsEl.addEventListener("click", (event) => {
   });
   focusDeleteAt(index);
 });
+
+// A move is not parked for undo: the other arrow takes it back.
+function moveStepFrom(button) {
+  const index = state.steps.findIndex((step) => step.id === button.closest("li.step").dataset.id);
+  if (index === -1) return;
+
+  const direction = button.dataset.direction;
+  const target = direction === "up" ? index - 1 : index + 1;
+  state.steps = moveStep(state.steps, index, direction === "up" ? -1 : 1);
+  savePlan(state);
+  render();
+
+  // Rebuilding the rows dropped focus. It follows the step, on the same arrow
+  // so repeated presses keep moving it, or the other one once it hits an end.
+  const row = stepsEl.children[Math.max(0, Math.min(target, stepsEl.children.length - 1))];
+  const same = row.querySelector(`.step__move--${direction}`);
+  (same.disabled ? row.querySelector(".step__move:not(:disabled)") : same).focus();
+}
+
+reorderEl.addEventListener("click", () => setReordering(!reordering));
 
 clearAllEl.addEventListener("click", () => {
   if (planIsEmpty()) return;
