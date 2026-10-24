@@ -20,7 +20,7 @@ On Android, open that URL in Chrome and choose **Add to Home screen**.
 [![Backwards Planner release notes](release-notes/preview.png)](https://vandenwoody.github.io/vibe-backwards-planner/release-notes/)
 
 **[Release notes](https://vandenwoody.github.io/vibe-backwards-planner/release-notes/)**:
-every new feature, newest first, with a mockup of what changed.
+every new feature, newest first, with screenshots of what changed.
 
 They are one page, `release-notes/index.html`, with a section per date. The
 1200×630 `release-notes/preview.png` is the link preview in chat apps and has
