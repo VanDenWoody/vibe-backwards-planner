@@ -404,6 +404,13 @@ input:focus {
   cursor: default;
 }
 
+/* Continue with Google: the second tap of Turn on, so it has to stand out. */
+.sync__action--primary,
+.sync__action--primary:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
 /* Tap to sync: the whole row is the button, so it reads as the row's text. */
 .sync__action--row {
   color: var(--muted);
