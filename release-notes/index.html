@@ -87,6 +87,28 @@ h1 em { font-style: normal; color: var(--accent); }
 .lede { margin: 0; font-size: 1.1rem; color: #d1d5db; max-width: 34em; }
 
 
+/* ---------- Contents: every feature, newest first, its release date after it ---------- */
+.toc { display: flex; flex-direction: column; gap: 0.6rem; }
+.toc__title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.toc ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.toc li { border-bottom: 1px solid var(--line); }
+.toc a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 1rem;
+  padding: 0.7rem 0;
+  color: var(--text);
+  text-decoration: none;
+}
+.toc a:hover .toc__name { color: var(--accent); }
+.toc__date { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+
 /* ---------- Release: one dated block per release, newest first ---------- */
 .release { display: flex; flex-direction: column; gap: 3.5rem; scroll-margin-top: 1rem; }
 .release__date {
@@ -100,7 +122,8 @@ h1 em { font-style: normal; color: var(--accent); }
 }
 
 /* ---------- Feature ---------- */
-.feature { display: flex; flex-direction: column; gap: 1.1rem; scroll-margin-top: 1rem; }
+.feature, .smalls { scroll-margin-top: 1rem; }
+.feature { display: flex; flex-direction: column; gap: 1.1rem; }
 .feature__tag {
   align-self: flex-start;
   font-size: 0.75rem;
@@ -390,6 +413,18 @@ kbd {
     <h1>Release notes</h1>
     <p class="lede">Backwards Planner works out when you have to leave. You set the deadline, add what has to happen before it, and it counts back. New features are listed here, newest first.</p>
 
+    <nav class="toc" aria-labelledby="toc-title">
+      <span class="toc__title" id="toc-title">What&rsquo;s new</span>
+      <ol>
+        <li><a href="#2026-10-24-negative-steps"><span class="toc__name">Negative steps for someone else&rsquo;s time</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-sync"><span class="toc__name">Template sync with Google Drive</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-picker"><span class="toc__name">New deadline picker</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-reorder-insert"><span class="toc__name">Reorder and insert steps</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-share"><span class="toc__name">Share, export and import templates</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-also-new"><span class="toc__name">Smaller improvements</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+      </ol>
+    </nav>
+
   </header>
 
   <section class="release" id="2026-10-24" aria-labelledby="release-2026-10-24">
@@ -533,7 +568,7 @@ kbd {
   </section>
 
   <!-- Small things -->
-  <section class="smalls">
+  <section class="smalls" id="2026-10-24-also-new">
     <span class="feature__tag">Also new</span>
     <ul>
       <li><b>Templates remember the time</b><span>Loading &ldquo;School run&rdquo; sets 08:30 again. It only asks about the deadline when you reload the template you already have open.</span></li>
