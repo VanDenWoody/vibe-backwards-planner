@@ -680,9 +680,28 @@ deadlineLabelEl.value = state.deadlineLabel;
 render();
 
 if ("serviceWorker" in navigator) {
+  // The page on screen was served from the old cache, so a new version only
+  // shows after a reload. Reload once the new worker takes over, but not over a
+  // half-typed name or an undo that is still on offer: those would be lost, and
+  // the new version will be there the next time the app opens anyway. A first
+  // install has no previous controller and needs no reload.
+  const hadController = navigator.serviceWorker.controller !== null;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (hadController && naming === null && pending === null) window.location.reload();
+  });
+
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      // Not a secure context, or the browser refused. The app works regardless.
-    });
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((registration) => {
+        // An installed app on a phone is resumed rather than reopened, so the
+        // browser's own update check on load rarely runs. Ask on every return.
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") registration.update().catch(() => {});
+        });
+      })
+      .catch(() => {
+        // Not a secure context, or the browser refused. The app works regardless.
+      });
   });
 }
