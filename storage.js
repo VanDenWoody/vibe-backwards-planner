@@ -11,6 +11,8 @@ export const LEGACY_TEMPLATES_KEY = "backwards-planner:templates:v1";
 export const SYNC_KEY = "backwards-planner:sync:v1";
 // Kept out of the plan record so the plan's shape and version need not move.
 export const ACTIVE_TEMPLATE_KEY = "backwards-planner:active-template:v1";
+// The date of the newest release-notes section the user has opened.
+export const WHATS_NEW_KEY = "backwards-planner:whats-new-seen:v1";
 
 export function loadPlan() {
   try {
@@ -55,6 +57,22 @@ export function loadActiveTemplateId() {
     return window.localStorage.getItem(ACTIVE_TEMPLATE_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+export function loadSeenRelease() {
+  try {
+    return window.localStorage.getItem(WHATS_NEW_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveSeenRelease(date) {
+  try {
+    window.localStorage.setItem(WHATS_NEW_KEY, date);
+  } catch {
+    // Storage disabled or full. The dot shows again next time, nothing worse.
   }
 }
 

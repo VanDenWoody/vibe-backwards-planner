@@ -24,10 +24,12 @@ import {
 import {
   loadActiveTemplateId,
   loadPlan,
+  loadSeenRelease,
   loadSyncState,
   loadTemplates,
   savePlan,
   saveActiveTemplateId,
+  saveSeenRelease,
   saveSyncState,
   saveTemplates,
 } from "./storage.js";
@@ -41,6 +43,7 @@ import {
   runSyncCycle,
 } from "./drive.js";
 import { createDeadlinePicker } from "./picker.js";
+import { hasUnseen, latestRelease } from "./whatsnew.js";
 
 const UNDO_MS = 6000;
 
@@ -1758,6 +1761,28 @@ deadlineLabelEl.value = state.deadlineLabel;
 render();
 startSync();
 // A shared link lands on the templates tab, with its own question to answer.
+// The "What's new" link gets a dot while the newest release in the notes is one
+// the user has not opened. The notes are not cached by the service worker, so
+// offline there is no answer and no dot.
+const whatsNewEl = document.getElementById("whats-new");
+const whatsNewDotEl = document.getElementById("whats-new-dot");
+let newestRelease = "";
+
+whatsNewEl.addEventListener("click", () => {
+  if (newestRelease !== "") saveSeenRelease(newestRelease);
+  whatsNewDotEl.hidden = true;
+});
+
+fetch("./release-notes/", { cache: "no-cache" })
+  .then((response) => (response.ok ? response.text() : ""))
+  .then((html) => {
+    newestRelease = latestRelease(html);
+    const unseen = hasUnseen(newestRelease, loadSeenRelease());
+    whatsNewDotEl.hidden = !unseen;
+    whatsNewEl.setAttribute("aria-label", unseen ? "What's new (new features)" : "What's new");
+  })
+  .catch(() => {});
+
 const arrivedWithLink = window.location.hash.includes(`${SHARE_PARAM}=`);
 takeSharedLink();
 if (planIsEmpty() && !arrivedWithLink) openDeadlinePicker();

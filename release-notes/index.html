@@ -84,6 +84,8 @@ h1, h2, h3 {
 }
 h1 { font-size: clamp(2.2rem, 9vw, 3.4rem); font-weight: 800; letter-spacing: -0.02em; }
 h1 em { font-style: normal; color: var(--accent); }
+.back { align-self: flex-start; text-decoration: none; padding-block: 0.5rem; margin-block: -0.5rem; }
+.back:hover { color: var(--text); }
 .lede { margin: 0; font-size: 1.1rem; color: #d1d5db; max-width: 34em; }
 
 
@@ -351,7 +353,7 @@ body::before {
 <main class="page" id="top">
 
   <header class="hero">
-    <span class="eyebrow">Backwards Planner</span>
+    <a class="eyebrow back" href="../">&larr; Back to Backwards Planner</a>
     <h1>Release notes</h1>
     <p class="lede">Backwards Planner works out when you have to leave. You set the deadline, add what has to happen before it, and it counts back. New features are listed here, newest first.</p>
 
@@ -459,6 +461,7 @@ body::before {
     <ul>
       <li><b>Templates remember the time</b><span>Loading &ldquo;School run&rdquo; sets 08:30 again. It only asks about the deadline when you reload the template you already have open.</span></li>
       <li><b>Template names fill themselves in</b><span>Saving a plan suggests the plan&rsquo;s name, so &ldquo;Dentist&rdquo; stays &ldquo;Dentist&rdquo;.</span></li>
+      <li><b>&ldquo;What&rsquo;s new&rdquo; in the app</b><span>At the bottom of the app, &ldquo;What&rsquo;s new&rdquo; opens these notes. A purple dot next to it means there is something you haven&rsquo;t seen yet.</span></li>
       <li><b>The installed app updates itself</b><span>If you added it to your home screen, it now picks up new versions on its own.</span></li>
     </ul>
   </section>
