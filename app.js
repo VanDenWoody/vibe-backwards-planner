@@ -7,6 +7,7 @@ import {
   planStepsFrom,
   removeTemplate,
   saveTemplate,
+  stampChanges,
 } from "./templates.js";
 import {
   SHARE_PARAM,
@@ -20,9 +21,13 @@ import {
 import {
   loadActiveTemplateId,
   loadPlan,
+  loadSyncPreview,
+  loadSyncState,
   loadTemplates,
   savePlan,
   saveActiveTemplateId,
+  saveSyncPreview,
+  saveSyncState,
   saveTemplates,
 } from "./storage.js";
 
@@ -107,6 +112,11 @@ let insertAt = null;
 // and a template. Only one is ever pending: a second action commits the first.
 let pending = null;
 let pendingTimer = 0;
+
+// Drive sync is a preview behind #sync until it has been tried on real
+// devices. Without the flag nothing about sync renders, loads or calls out.
+let syncPreview = loadSyncPreview();
+const syncState = loadSyncState();
 
 function formatAt(date, withDate) {
   const time = timeFmt.format(date);
@@ -838,7 +848,19 @@ addStepEl.addEventListener("submit", (event) => {
   newLabelEl.focus();
 });
 
+// Every local change to the library goes through here, so this is where it
+// gets dated for sync: stampChanges marks what is new, edited or gone.
 function commitLibrary(next) {
+  library = stampChanges(library, next, Date.now());
+  saveTemplates(library);
+  syncState.dirty = true;
+  saveSyncState(syncState);
+  renderTemplates();
+}
+
+// A library that came back from a sync is saved as it is: stamping it would
+// re-date every template the other devices sent to now.
+function applySyncedLibrary(next) {
   library = next;
   saveTemplates(library);
   renderTemplates();
@@ -1269,10 +1291,23 @@ importFileEl.addEventListener("change", async () => {
   else importTemplates(incoming, { fromFile: true });
 });
 
+// #sync switches the sync preview on for this browser, #nosync off. Cleared
+// like a shared link, so the address bar does not keep it.
+function takeSyncFlag() {
+  const hash = window.location.hash;
+  if (hash !== "#sync" && hash !== "#nosync") return;
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  syncPreview = hash === "#sync";
+  saveSyncPreview(syncPreview);
+  renderTemplates();
+}
+
 window.addEventListener("hashchange", takeSharedLink);
+window.addEventListener("hashchange", takeSyncFlag);
 
 deadlineInputEl.value = state.deadline;
 deadlineLabelEl.value = state.deadlineLabel;
+takeSyncFlag();
 render();
 takeSharedLink();
 
