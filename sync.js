@@ -11,8 +11,8 @@ function comparableName(name) {
 }
 
 function contentKey(template) {
-  const { name, deadlineLabel, steps } = template;
-  return JSON.stringify({ name, deadlineLabel, steps });
+  const { name, deadlineLabel, deadlineTime, steps } = template;
+  return JSON.stringify({ name, deadlineLabel, deadlineTime, steps });
 }
 
 // Rule 1: the newer edit wins; on a tie, the copy whose content sorts first.

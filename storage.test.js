@@ -38,7 +38,7 @@ test("loadTemplates migrates from the v1 key", () => {
   store.set(LEGACY_TEMPLATES_KEY, v1);
   assert.deepEqual(loadTemplates(), {
     version: 2,
-    items: [{ id: "t1", name: "Airport", deadlineLabel: "", steps: [{ label: "Drive", minutes: 30 }], updatedAt: 0 }],
+    items: [{ id: "t1", name: "Airport", deadlineLabel: "", deadlineTime: "", steps: [{ label: "Drive", minutes: 30 }], updatedAt: 0 }],
     tombstones: [],
   });
 });

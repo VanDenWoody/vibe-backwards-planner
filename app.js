@@ -4,10 +4,13 @@ import {
   createTemplate,
   findTemplate,
   findTemplateByName,
+  nextOccurrence,
+  onSameDay,
   planStepsFrom,
   removeTemplate,
   saveTemplate,
   stampChanges,
+  timeOfDeadline,
 } from "./templates.js";
 import {
   SHARE_PARAM,
@@ -137,6 +140,12 @@ function isToday(date) {
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
   );
+}
+
+// A plan deadline as the header reads it: "Today 08:15", "Fri 30 Oct 14:00".
+function describeDeadline(deadline) {
+  const date = new Date(deadline);
+  return `${isToday(date) ? "Today" : dayFmt.format(date)} ${timeFmt.format(date)}`;
 }
 
 function formatDuration(minutes) {
@@ -391,7 +400,8 @@ function summarize(template) {
   if (count === 0) return "No steps";
   // Your own time, as on the leave line: negative steps are someone else's.
   const total = template.steps.reduce((sum, step) => sum + Math.max(0, step.minutes), 0);
-  return `${count} step${count === 1 ? "" : "s"} · ${formatDuration(total)}`;
+  const ends = template.deadlineTime === "" ? "" : ` · ends ${template.deadlineTime}`;
+  return `${count} step${count === 1 ? "" : "s"} · ${formatDuration(total)}${ends}`;
 }
 
 function templateRow(template) {
@@ -877,15 +887,58 @@ function applySyncedLibrary(next) {
   renderTemplates();
 }
 
-function loadTemplate(template) {
+// The deadline a load gives the plan: the next time the template's clock time
+// comes round. A deadline the plan already has is the user's to give up, so
+// then the dialog asks. A template without a time leaves the deadline alone.
+// null means the user cancelled the load.
+async function deadlineForLoad(template) {
+  const time = template.deadlineTime;
+  if (time === "") return state.deadline;
+
+  const next = nextOccurrence(time, new Date());
+  if (state.deadline === "" || state.deadline === next) return next;
+
+  const current = state.deadline;
+  const sameDay = onSameDay(current, time);
+  const buttons = [
+    { value: next, label: `${describeDeadline(next)} (template)`, primary: true },
+    { value: current, label: `${describeDeadline(current)} (keep current)` },
+  ];
+  // Offered only when it is a third answer, not a copy of one of the others.
+  if (sameDay !== current && sameDay !== next) {
+    buttons.push({ value: sameDay, label: `${describeDeadline(sameDay)} (keep date, template time)` });
+  }
+  buttons.push({ value: "", label: "Cancel" });
+
+  const answer = await ask({
+    title: `Load “${template.name}”`,
+    body: [
+      facts(
+        `This plan already ends ${describeDeadline(current)}.`,
+        `“${template.name}” ends at ${time}.`
+      ),
+    ],
+    buttons,
+    stacked: true,
+  });
+  return answer.choice === "" ? null : answer.choice;
+}
+
+async function loadTemplate(template) {
+  const deadline = await deadlineForLoad(template);
+  if (deadline === null) return;
+
   const previousSteps = state.steps;
+  const previousDeadline = state.deadline;
   const previousLabel = state.deadlineLabel;
   const previousActive = activeId;
 
   state.steps = planStepsFrom(template);
+  state.deadline = deadline;
   state.deadlineLabel = template.deadlineLabel;
   // Writing an input's value is banned during render, where it would eat the
-  // caret. Here the user is not typing, so the field has to be told.
+  // caret. Here the user is not typing, so the fields have to be told.
+  deadlineInputEl.value = state.deadline;
   deadlineLabelEl.value = state.deadlineLabel;
   setActive(template.id);
   savePlan(state);
@@ -894,7 +947,9 @@ function loadTemplate(template) {
 
   beginPending(`Loaded “${template.name}”`, () => {
     state.steps = previousSteps;
+    state.deadline = previousDeadline;
     state.deadlineLabel = previousLabel;
+    deadlineInputEl.value = previousDeadline;
     deadlineLabelEl.value = previousLabel;
     setActive(previousActive);
     savePlan(state);
@@ -908,7 +963,7 @@ function updateTemplate(template) {
   // createTemplate does the stripping and trimming; keeping the original id is
   // what turns the result from a new template into a replacement.
   const replacement = {
-    ...createTemplate(template.name, state.deadlineLabel, state.steps),
+    ...createTemplate(template.name, state.deadlineLabel, state.steps, timeOfDeadline(state.deadline)),
     id: template.id,
   };
 
@@ -1022,7 +1077,12 @@ templateListEl.addEventListener("submit", (event) => {
   const previousActive = activeId;
 
   if (naming.kind === "new") {
-    const template = createTemplate(name, state.deadlineLabel, state.steps);
+    const template = createTemplate(
+      name,
+      state.deadlineLabel,
+      state.steps,
+      timeOfDeadline(state.deadline)
+    );
     naming = null;
     setActive(template.id);
     commitLibrary(saveTemplate(library, template));
@@ -1095,15 +1155,18 @@ function exportAll() {
 // One dialog serves every import question. ask() fills it and resolves with
 // the value of the button pressed; Escape resolves with "", which every caller
 // reads as "stop". check, when given, can keep the dialog open for a fix.
+// stacked puts the buttons one per line, for answers too long to sit side by
+// side.
 let askResolve = null;
 let askCheck = null;
 
-function ask({ title, body, buttons, all = "", check = null }) {
+function ask({ title, body, buttons, all = "", check = null, stacked = false }) {
   importTitleEl.textContent = title;
   importBodyEl.replaceChildren(...body);
   importAllRowEl.hidden = all === "";
   importAllLabelEl.textContent = all;
   importAllEl.checked = false;
+  importButtonsEl.classList.toggle("import__buttons--stacked", stacked);
   importButtonsEl.replaceChildren(
     ...buttons.map(({ value, label, primary = false }) => {
       const button = document.createElement("button");

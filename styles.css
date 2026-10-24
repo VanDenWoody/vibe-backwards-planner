@@ -502,6 +502,11 @@ input:focus {
   gap: 0.25rem;
 }
 
+.import__buttons--stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .import__button {
   min-height: 44px;
   padding: 0 0.75rem;

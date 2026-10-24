@@ -14,6 +14,8 @@ export function encodeTemplate(template) {
     v: SHARE_VERSION,
     n: template.name,
     d: template.deadlineLabel,
+    // Only when there is one: a template without a time keeps its old link.
+    ...(template.deadlineTime ? { t: template.deadlineTime } : {}),
     s: template.steps.map((step) => [step.label, step.minutes]),
   };
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
@@ -22,7 +24,7 @@ export function encodeTemplate(template) {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// Returns {name, deadlineLabel, steps}, or null for anything that is not a
+// Returns {name, deadlineLabel, deadlineTime, steps}, or null for anything that is not a
 // template this version can read. Links arrive from outside, so nothing here
 // may throw.
 export function decodeTemplate(text) {
@@ -38,13 +40,14 @@ export function decodeTemplate(text) {
       id: "shared",
       name: typeof payload.n === "string" ? payload.n.trim() : "",
       deadlineLabel: payload.d,
+      deadlineTime: payload.t,
       steps: payload.s.map((pair) =>
         Array.isArray(pair) ? { label: pair[0], minutes: pair[1] } : null
       ),
     });
     if (template === null) return null;
-    const { name, deadlineLabel, steps } = template;
-    return { name, deadlineLabel, steps };
+    const { name, deadlineLabel, deadlineTime, steps } = template;
+    return { name, deadlineLabel, deadlineTime, steps };
   } catch {
     return null;
   }
@@ -67,10 +70,11 @@ export function readSharedLink(text) {
 }
 
 export function exportLibrary(library) {
-  const items = library.items.map(({ id, name, deadlineLabel, steps }) => ({
+  const items = library.items.map(({ id, name, deadlineLabel, deadlineTime, steps }) => ({
     id,
     name,
     deadlineLabel,
+    deadlineTime,
     steps,
   }));
   return `${JSON.stringify({ version: EXPORT_VERSION, items }, null, 2)}\n`;
@@ -94,8 +98,8 @@ export function parseExportFile(text) {
     const template = normalizeTemplate(entry);
     if (template === null || seen.has(template.id)) continue;
     seen.add(template.id);
-    const { name, deadlineLabel, steps } = template;
-    templates.push({ name, deadlineLabel, steps });
+    const { name, deadlineLabel, deadlineTime, steps } = template;
+    templates.push({ name, deadlineLabel, deadlineTime, steps });
   }
   return templates;
 }
@@ -115,10 +119,13 @@ export function addImported(library, incoming, mode) {
   const clash = findTemplateByName(library, incoming.name);
   if (mode === "replace" && clash !== undefined) {
     return saveTemplate(library, {
-      ...createTemplate(clash.name, incoming.deadlineLabel, incoming.steps),
+      ...createTemplate(clash.name, incoming.deadlineLabel, incoming.steps, incoming.deadlineTime),
       id: clash.id,
     });
   }
   const name = uniqueName(library, incoming.name);
-  return saveTemplate(library, createTemplate(name, incoming.deadlineLabel, incoming.steps));
+  return saveTemplate(
+    library,
+    createTemplate(name, incoming.deadlineLabel, incoming.steps, incoming.deadlineTime)
+  );
 }

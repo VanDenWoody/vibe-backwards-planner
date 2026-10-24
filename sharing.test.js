@@ -26,6 +26,7 @@ test("decodeTemplate reverses encodeTemplate, without the id", () => {
   assert.deepEqual(decodeTemplate(encodeTemplate(airport)), {
     name: "Airport run",
     deadlineLabel: "Flight departs",
+    deadlineTime: "",
     steps: [
       { label: "Check in", minutes: 45 },
       { label: "Drive", minutes: 35 },
@@ -104,15 +105,15 @@ test("exportLibrary writes version 1 without updatedAt or tombstones", () => {
   assert.equal(EXPORT_VERSION, 1);
   assert.deepEqual(raw, {
     version: 1,
-    items: [{ id: airport.id, name: "Airport run", deadlineLabel: "Flight departs", steps: airport.steps }],
+    items: [{ id: airport.id, name: "Airport run", deadlineLabel: "Flight departs", deadlineTime: "", steps: airport.steps }],
   });
 });
 
 test("an export round-trips through parseExportFile", () => {
   const library = libraryOf({ ...airport, updatedAt: 9 }, createTemplate("Dinner", "Eat", [{ label: "Cook", minutes: 30 }]));
   assert.deepEqual(parseExportFile(exportLibrary(library)), [
-    { name: "Airport run", deadlineLabel: "Flight departs", steps: airport.steps },
-    { name: "Dinner", deadlineLabel: "Eat", steps: [{ label: "Cook", minutes: 30 }] },
+    { name: "Airport run", deadlineLabel: "Flight departs", deadlineTime: "", steps: airport.steps },
+    { name: "Dinner", deadlineLabel: "Eat", deadlineTime: "", steps: [{ label: "Cook", minutes: 30 }] },
   ]);
 });
 
@@ -176,6 +177,7 @@ test("addImported as replace keeps the clash's id, position and spelling", () =>
     id: airport.id,
     name: "Airport run",
     deadlineLabel: "Boarding",
+    deadlineTime: "",
     steps: [{ label: "Taxi", minutes: 20 }],
     updatedAt: 0,
   });
@@ -188,4 +190,29 @@ test("addImported leaves the library it was given untouched", () => {
   addImported(library, airport, "replace");
   addImported(library, airport, "new");
   assert.deepEqual(library, snapshot);
+});
+
+test("a shared link carries the template's deadline time", () => {
+  const commute = createTemplate("Commute", "Desk", [{ label: "Bike", minutes: 25 }], "08:15");
+  assert.equal(decodeTemplate(encodeTemplate(commute)).deadlineTime, "08:15");
+});
+
+test("a template without a time keeps the link it had before times existed", () => {
+  const payload = JSON.parse(
+    atob(encodeTemplate(airport).replace(/-/g, "+").replace(/_/g, "/"))
+  );
+  assert.equal("t" in payload, false);
+});
+
+test("a shared link with a broken time still decodes, without the time", () => {
+  const payload = { v: 1, n: "Commute", d: "", t: "25:99", s: [["Bike", 25]] };
+  const text = btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  assert.equal(decodeTemplate(text).deadlineTime, "");
+});
+
+test("export and import keep the deadline time", () => {
+  const commute = createTemplate("Commute", "Desk", [{ label: "Bike", minutes: 25 }], "08:15");
+  const [incoming] = parseExportFile(exportLibrary(libraryOf(commute)));
+  assert.equal(incoming.deadlineTime, "08:15");
+  assert.equal(addImported(emptyLibrary(), incoming, "new").items[0].deadlineTime, "08:15");
 });
