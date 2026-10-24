@@ -631,9 +631,11 @@ function undoPending() {
   restore();
 }
 
-deadlineOpenEl.addEventListener("click", () => {
+function openDeadlinePicker() {
   deadlinePicker.open(state.deadline, deadlineOpenEl);
-});
+}
+
+deadlineOpenEl.addEventListener("click", openDeadlinePicker);
 
 deadlineLabelEl.addEventListener("input", () => {
   state.deadlineLabel = deadlineLabelEl.value;
@@ -829,6 +831,9 @@ clearAllEl.addEventListener("click", () => {
     focusDeleteAt(0);
   });
   undoActionEl.focus();
+  // An empty plan starts with its deadline. The picker hands focus back to
+  // Undo when it closes, so the clear can still be taken back.
+  openDeadlinePicker();
 });
 
 undoActionEl.addEventListener("click", undoPending);
@@ -1734,7 +1739,10 @@ window.addEventListener("hashchange", takeSharedLink);
 deadlineLabelEl.value = state.deadlineLabel;
 render();
 startSync();
+// A shared link lands on the templates tab, with its own question to answer.
+const arrivedWithLink = window.location.hash.includes(`${SHARE_PARAM}=`);
 takeSharedLink();
+if (planIsEmpty() && !arrivedWithLink) openDeadlinePicker();
 
 if ("serviceWorker" in navigator) {
   // The page on screen was served from the old cache, so a new version only
