@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Backwards Planner release notes</title>
+<meta name="description" content="What's new in Backwards Planner, newest first. Latest (24 October 2026): negative steps, template sync with Google Drive, a new deadline picker, reorder and insert, share and import.">
+<meta name="theme-color" content="#0b1120">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Backwards Planner">
+<meta property="og:title" content="Backwards Planner release notes">
+<meta property="og:description" content="What's new in Backwards Planner, newest first. Latest (24 October 2026): negative steps, template sync with Google Drive, a new deadline picker, reorder and insert, share and import.">
+<meta property="og:url" content="https://vandenwoody.github.io/vibe-backwards-planner/release-notes/">
+<meta property="og:image" content="https://vandenwoody.github.io/vibe-backwards-planner/release-notes/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Backwards Planner release notes, with a plan for picking someone up from the airport">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: one narrow reading column (phone first); each feature is text then a screenshot
+   of the real app. Desktop puts paired screenshots side by side. */
+:root {
+  color-scheme: dark;
+  /* The app's own tokens (styles.css) */
+  --bg: #111827;
+  --surface: #1f2937;
+  --raised: #374151;
+  --text: #f9fafb;
+  --muted: #9ca3af;
+  --accent: #818cf8;
+  --theirs: #c4b5fd;
+  --field: rgba(255, 255, 255, 0.04);
+  --field-border: rgba(255, 255, 255, 0.1);
+  --radius: 10px;
+  /* Page-only tokens */
+  --ink: #0b1120;
+  --line: rgba(129, 140, 248, 0.22);
+  --accent-soft: rgba(129, 140, 248, 0.14);
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-app: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font: 18px/1.55 var(--font-body);
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding-block: 2.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+}
+
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* ---------- Hero ---------- */
+.hero { display: flex; flex-direction: column; gap: 1rem; }
+.eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1, h2, h3 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+  margin: 0;
+  line-height: 1.1;
+}
+h1 { font-size: clamp(2.2rem, 9vw, 3.4rem); font-weight: 800; letter-spacing: -0.02em; }
+h1 em { font-style: normal; color: var(--accent); }
+.lede { margin: 0; font-size: 1.1rem; color: #d1d5db; max-width: 34em; }
+
+
+/* ---------- Contents: every feature, newest first, its release date after it ---------- */
+.toc { display: flex; flex-direction: column; gap: 0.6rem; }
+.toc__title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.toc ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.toc li { border-bottom: 1px solid var(--line); }
+.toc a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 1rem;
+  padding: 0.7rem 0;
+  color: var(--text);
+  text-decoration: none;
+}
+.toc a:hover .toc__name { color: var(--accent); }
+.toc__date { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+
+/* ---------- Release: one dated block per release, newest first ---------- */
+.release { display: flex; flex-direction: column; gap: 3.5rem; }
+.release__date {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ---------- Feature ---------- */
+.feature { display: flex; flex-direction: column; gap: 1.1rem; }
+.feature__tag {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+}
+h3 { font-size: clamp(1.6rem, 6.5vw, 2.2rem); font-weight: 800; letter-spacing: -0.015em; }
+.feature p { margin: 0; max-width: 34em; }
+.feature ul.points { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; max-width: 34em; }
+.muted { color: var(--muted); }
+kbd {
+  font-family: var(--font-app);
+  font-size: 0.8em;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--field-border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.duo { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+@media (min-width: 760px) {
+  .duo { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+
+/* Screenshots of the real app, taken with tools/release-screenshots.mjs */
+.shot { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.shot img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--field-border);
+  border-radius: 16px;
+  background: var(--bg);
+}
+.shot figcaption { font-size: 0.85rem; color: var(--muted); text-align: center; }
+
+.flow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem;
+  font-size: 0.95rem; color: var(--muted);
+}
+.flow span { color: var(--text); background: var(--surface); border-radius: 8px; padding: 0.2rem 0.55rem; }
+.flow i { font-style: normal; color: var(--accent); }
+
+/* ---------- Small things ---------- */
+.smalls { display: flex; flex-direction: column; gap: 1rem; }
+.smalls ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.smalls li { padding: 0.9rem 0; border-bottom: 1px solid var(--line); display: grid; gap: 0.15rem; }
+.smalls li b { font-weight: 700; }
+.smalls li span { color: var(--muted); font-size: 0.95rem; }
+
+/* ---------- Footer ---------- */
+.cta {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 1.5rem 1.25rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.cta h2 { font-size: 1.6rem; }
+.cta p { margin: 0; color: #d1d5db; }
+.cta__btn {
+  align-self: flex-start;
+  display: inline-block;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.75rem 1.3rem;
+  border-radius: 12px;
+}
+.cta__btn:hover { background: #a5b4fc; }
+.cta__url { font-size: 0.85rem; color: var(--muted); word-break: break-all; }
+
+/* ---------- Always-visible contents ----------
+   Phone: a bar pinned to the top names the section you are in; tap it for the
+   full list. Wide screens: a pinned sidebar instead. Both are built by the
+   script at the bottom from every [data-toc] section, grouped by release date. */
+.release, .feature, .smalls, #top { scroll-margin-top: 4.5rem; }
+
+.bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 20;
+  background: rgba(11, 17, 32, 0.94);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 21;
+  background: var(--ink);
+}
+.bar__menu { max-width: 46rem; margin: 0 auto; position: relative; }
+.bar__current {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding-block: 0.55rem;
+  cursor: pointer;
+  user-select: none;
+}
+.bar__current::-webkit-details-marker { display: none; }
+.bar__current:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.bar__where { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.bar__date:empty { display: none; }
+.bar__label { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar__date { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
+.bar__toggle {
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bar__current:hover .bar__toggle, .bar__menu[open] .bar__toggle { background: var(--accent); color: var(--ink); }
+.bar__chev { display: inline-block; }
+.bar__menu[open] .bar__chev { transform: rotate(180deg); }
+.bar__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  max-height: min(70vh, 32rem);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  padding: 0.5rem;
+}
+
+/* One list shape for both the bar's panel and the sidebar */
+.nav-group + .nav-group { margin-top: 0.75rem; }
+.nav-date {
+  display: block;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.nav-list { list-style: none; margin: 0; padding: 0; }
+.nav-list a {
+  display: block;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+.nav-list a:hover { background: rgba(255, 255, 255, 0.05); }
+.nav-list a[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.nav-top { display: block; padding: 0.55rem 0.6rem; color: var(--muted); text-decoration: none; border-radius: 8px; }
+.nav-top:hover { color: var(--text); }
+
+.side { display: none; }
+
+@media (min-width: 1100px) {
+  .bar { display: none; }
+  .release, .feature, .smalls, #top { scroll-margin-top: 1.5rem; }
+  .layout {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 46rem);
+    justify-content: center;
+    column-gap: 3rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .layout .page { margin: 0; padding-left: 0; padding-right: 0; }
+  .side:not([hidden]) {
+    display: block;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding-block: 2.5rem;
+    font-size: 0.95rem;
+  }
+  /* The sidebar carries the dates, so the list at the top would repeat it. */
+  .js .hero .toc { display: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bar__chev { transition: transform 0.15s; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cta__btn { transition: background 0.15s; }
+}
+</style>
+
+</head>
+<body>
+<nav class="bar" aria-label="Contents" hidden>
+  <details class="bar__menu">
+    <summary class="bar__current"><span class="bar__where"><span class="bar__label">Release notes</span><span class="bar__date"></span></span><span class="bar__toggle">Contents <span class="bar__chev" aria-hidden="true">&#9662;</span></span></summary>
+    <div class="bar__panel"></div>
+  </details>
+</nav>
+
+<div class="layout">
+<nav class="side" aria-label="Contents" hidden></nav>
+
+<main class="page" id="top">
+
+  <header class="hero">
+    <span class="eyebrow">Backwards Planner</span>
+    <h1>Release notes</h1>
+    <p class="lede">Backwards Planner works out when you have to leave. You set the deadline, add what has to happen before it, and it counts back. New features are listed here, newest first.</p>
+
+    <nav class="toc" aria-labelledby="toc-title">
+      <span class="toc__title" id="toc-title">What&rsquo;s new</span>
+      <ol>
+        <li><a href="#2026-10-24-negative-steps"><span class="toc__name">Negative steps for someone else&rsquo;s time</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-sync"><span class="toc__name">Template sync with Google Drive</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-picker"><span class="toc__name">New deadline picker</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-reorder-insert"><span class="toc__name">Reorder and insert steps</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-share"><span class="toc__name">Share, export and import templates</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+        <li><a href="#2026-10-24-also-new"><span class="toc__name">Smaller improvements</span><time class="toc__date" datetime="2026-10-24">24 Oct 2026</time></a></li>
+      </ol>
+    </nav>
+
+  </header>
+
+  <section class="release" id="2026-10-24" aria-labelledby="release-2026-10-24">
+  <h2 class="release__date" id="release-2026-10-24"><time datetime="2026-10-24">24 October 2026</time></h2>
+
+  <!-- Negative steps -->
+  <section class="feature" id="2026-10-24-negative-steps" data-toc="Negative steps">
+    <span class="feature__tag">New</span>
+    <h3>Negative steps for someone else&rsquo;s time</h3>
+    <p>Picking someone up? Their plane lands at 11:00, but they still have to get off and through passport control. Enter those steps with negative minutes, like <b>&minus;10</b>. Their steps run forward to a meet time, and your own steps count back from there.</p>
+    <figure class="shot">
+      <img src="img/2026-10-24-negative-steps.png" width="404" height="562" alt="A plan for a pickup at Schiphol: three of their steps with negative minutes run from 11:00 to a meet time of 11:30, then four of your steps count back to leave by 10:35.">
+      <figcaption>On a phone. Desktop looks the same.</figcaption>
+    </figure>
+    <p class="muted">Their steps are dashed and purple and always stay on top, so you never confuse them with yours. Each one shows when it ends and when it started. The total next to &ldquo;Leave by&rdquo; counts only your own time.</p>
+  </section>
+
+  <!-- Sync -->
+  <section class="feature" id="2026-10-24-sync" data-toc="Template sync">
+    <span class="feature__tag">New</span>
+    <h3>Template sync with Google Drive</h3>
+    <p>Save &ldquo;School run&rdquo; on your phone and it shows up on your laptop. Tap <b>Turn on</b> at the bottom of the Templates tab and sign in with Google. Changes go across about three seconds after you make them.</p>
+    <figure class="shot">
+      <img src="img/2026-10-24-sync.png" width="404" height="597" alt="The Templates tab with three templates, Export all and Import buttons, and at the bottom: Sync templates with Google Drive, Turn on." loading="lazy">
+      <figcaption>On a phone. Desktop looks the same.</figcaption>
+    </figure>
+    <ul class="points">
+      <li>The app only sees its own hidden folder in your Google Drive, nothing else.</li>
+      <li>While sync is off, the app does not contact Google at all.</li>
+      <li>Two different templates with the same name? It asks which one to keep.</li>
+      <li>On iPhone, use it in a Safari tab. The home-screen app can&rsquo;t do the Google sign-in.</li>
+    </ul>
+  </section>
+
+  <!-- Picker -->
+  <section class="feature" id="2026-10-24-picker" data-toc="Deadline picker">
+    <span class="feature__tag">Redesigned</span>
+    <h3>New deadline picker</h3>
+    <p>Tap the time and a picker opens. Choose Today, Tomorrow or another day, then type the time: four digits and you&rsquo;re done. On a phone you get a keypad; on a computer you just type.</p>
+    <div class="duo">
+      <figure class="shot">
+      <img src="img/2026-10-24-picker-phone.png" width="412" height="870" alt="Phone: the picker slides up from the bottom with Today, Tomorrow and Other, the time, quick minutes and a number keypad." loading="lazy">
+      <figcaption>Phone: a keypad slides up from the bottom.</figcaption>
+    </figure>
+      <figure class="shot">
+      <img src="img/2026-10-24-picker-desktop.png" width="536" height="454" alt="Desktop: a small panel under the time with Today, Tomorrow and Other, the time, quick minutes and keyboard hints." loading="lazy">
+      <figcaption>Desktop: a small panel you type into.</figcaption>
+    </figure>
+    </div>
+    <ul class="points">
+      <li>Start with an empty plan and the picker opens by itself.</li>
+      <li>On a computer, <kbd>Enter</kbd> walks you through the whole plan without the mouse:</li>
+    </ul>
+    <div class="flow" aria-label="Enter moves from the time to the deadline name, to the step name, to the minutes, and adds the step">
+      <span>time</span><i>&rarr;</i><span>deadline name</span><i>&rarr;</i><span>step name</span><i>&rarr;</i><span>minutes</span><i>&rarr;</i><span>step added</span>
+    </div>
+  </section>
+
+  <!-- Reorder & insert -->
+  <section class="feature" id="2026-10-24-reorder-insert" data-toc="Reorder and insert">
+    <span class="feature__tag">New</span>
+    <h3>Reorder and insert steps</h3>
+    <p>Two new buttons under the plan. <b>Reorder</b> swaps the minutes for arrows so you can move steps up and down. <b>Insert</b> opens a slot between the steps, so you can add one in the middle instead of only at the end. Tap <b>Done</b> when you&rsquo;re finished.</p>
+    <div class="duo">
+      <figure class="shot">
+      <img src="img/2026-10-24-reorder.png" width="404" height="388" alt="Reorder: each step has an up and a down arrow, with Done below the plan." loading="lazy">
+      <figcaption>Reorder. Desktop looks the same.</figcaption>
+    </figure>
+      <figure class="shot">
+      <img src="img/2026-10-24-insert.png" width="404" height="580" alt="Insert: an Add step here slot above, between and below the steps." loading="lazy">
+      <figcaption>Insert. Desktop looks the same.</figcaption>
+    </figure>
+    </div>
+  </section>
+
+  <!-- Share -->
+  <section class="feature" id="2026-10-24-share" data-toc="Share and import">
+    <span class="feature__tag">New</span>
+    <h3>Share, export and import templates</h3>
+    <p>Tap <b>Share</b> on a template to send it as a link. Whoever opens the link is asked whether to add the template to their own list. To move everything at once, use <b>Export all</b> and <b>Import&hellip;</b> on the Templates tab.</p>
+    <figure class="shot">
+      <img src="img/2026-10-24-share.png" width="404" height="537" alt="A friend opens a shared link: the app asks Import template Pickup from Schiphol? with the steps summary, Import and Cancel." loading="lazy">
+      <figcaption>What your friend sees after opening the link.</figcaption>
+    </figure>
+  </section>
+
+  <!-- Small things -->
+  <section class="smalls" id="2026-10-24-also-new" data-toc="Smaller improvements">
+    <span class="feature__tag">Also new</span>
+    <ul>
+      <li><b>Templates remember the time</b><span>Loading &ldquo;School run&rdquo; sets 08:30 again. It only asks about the deadline when you reload the template you already have open.</span></li>
+      <li><b>Template names fill themselves in</b><span>Saving a plan suggests the plan&rsquo;s name, so &ldquo;Dentist&rdquo; stays &ldquo;Dentist&rdquo;.</span></li>
+      <li><b>The installed app updates itself</b><span>If you added it to your home screen, it now picks up new versions on its own.</span></li>
+    </ul>
+  </section>
+
+  </section>
+
+  <section class="cta">
+    <h2>Try it</h2>
+    <p>Free, no account, works offline. On Android, open it in Chrome and choose <b>Add to Home screen</b>.</p>
+    <a class="cta__btn" href="https://vandenwoody.github.io/vibe-backwards-planner/" target="_blank" rel="noopener">Open Backwards Planner</a>
+    <span class="cta__url">vandenwoody.github.io/vibe-backwards-planner</span>
+  </section>
+
+</main>
+</div>
+
+<script>
+(() => {
+  document.documentElement.classList.add("js");
+  const bar = document.querySelector(".bar");
+  const menu = bar.querySelector(".bar__menu");
+  const label = bar.querySelector(".bar__label");
+  const date = bar.querySelector(".bar__date");
+  const side = document.querySelector(".side");
+
+  // Every [data-toc] section, grouped under its release date, newest first.
+  const groups = [...document.querySelectorAll(".release")].map((release) => {
+    const time = release.querySelector(".release__date time");
+    return {
+      date: time.textContent,
+      short: new Date(time.dateTime).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      items: [...release.querySelectorAll("[data-toc]")].map((el) => ({ el, name: el.dataset.toc })),
+    };
+  });
+  const items = groups.flatMap((group) => group.items.map((item) => ({ ...item, group })));
+
+  function list() {
+    const frag = document.createDocumentFragment();
+    const top = document.createElement("a");
+    top.className = "nav-top";
+    top.href = "#top";
+    top.textContent = "↑ Top of the page";
+    frag.append(top);
+    for (const group of groups) {
+      const box = document.createElement("div");
+      box.className = "nav-group";
+      const head = document.createElement("span");
+      head.className = "nav-date";
+      head.textContent = group.date;
+      const ol = document.createElement("ol");
+      ol.className = "nav-list";
+      for (const item of group.items) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = "#" + item.el.id;
+        a.textContent = item.name;
+        li.append(a);
+        ol.append(li);
+      }
+      box.append(head, ol);
+      frag.append(box);
+    }
+    return frag;
+  }
+  bar.querySelector(".bar__panel").append(list());
+  side.append(list());
+  bar.hidden = false;
+  side.hidden = false;
+
+  // Close the bar's list after a choice, on Escape, and on a tap elsewhere.
+  bar.addEventListener("click", (event) => {
+    if (event.target.closest("a")) menu.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && menu.open) {
+      menu.open = false;
+      menu.querySelector("summary").focus();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (menu.open && !bar.contains(event.target)) menu.open = false;
+  });
+
+  // The section you are in is the last one whose top has passed under the bar.
+  let current;
+  function update() {
+    const line = (bar.offsetHeight || 0) + 24;
+    let found = null;
+    for (const item of items) {
+      if (item.el.getBoundingClientRect().top <= line) found = item;
+    }
+    if (found === current) return;
+    current = found;
+    label.textContent = found ? found.name : "Release notes";
+    date.textContent = found ? found.group.short : "";
+    for (const a of document.querySelectorAll(".nav-list a")) {
+      a.setAttribute("aria-current", String(found !== null && a.hash === "#" + found.el.id));
+    }
+  }
+  let queued = false;
+  addEventListener("scroll", () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      update();
+    });
+  }, { passive: true });
+  addEventListener("resize", update);
+  update();
+})();
+</script>
+</body>
+</html>

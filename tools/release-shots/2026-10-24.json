@@ -1,0 +1,335 @@
+{
+  "base": "http://localhost:8000/",
+  "out": "release-notes/img",
+  "shots": [
+    {
+      "name": "2026-10-24-negative-steps",
+      "storage": {
+        "backwards-planner:v1": {
+          "version": 1,
+          "deadline": "{{tomorrow}}T11:00",
+          "deadlineLabel": "Pickup from Schiphol",
+          "steps": [
+            {
+              "id": "a1",
+              "label": "Deplane",
+              "minutes": -10
+            },
+            {
+              "id": "a2",
+              "label": "Walking to passport control",
+              "minutes": -10
+            },
+            {
+              "id": "a3",
+              "label": "Passport queue",
+              "minutes": -10
+            },
+            {
+              "id": "a4",
+              "label": "Walk from parking",
+              "minutes": 10
+            },
+            {
+              "id": "a5",
+              "label": "Park",
+              "minutes": 5
+            },
+            {
+              "id": "a6",
+              "label": "Drive",
+              "minutes": 35
+            },
+            {
+              "id": "a7",
+              "label": "Get ready",
+              "minutes": 5
+            }
+          ]
+        }
+      },
+      "clip": [
+        ".deadline",
+        "#steps",
+        "#leave"
+      ]
+    },
+    {
+      "name": "2026-10-24-sync",
+      "storage": {
+        "backwards-planner:templates:v2": {
+          "version": 2,
+          "tombstones": [],
+          "items": [
+            {
+              "id": "t1",
+              "name": "School run",
+              "deadlineLabel": "School starts",
+              "deadlineTime": "08:30",
+              "updatedAt": 1,
+              "steps": [
+                {
+                  "label": "Bike to school",
+                  "minutes": 15
+                },
+                {
+                  "label": "Pack bag",
+                  "minutes": 5
+                },
+                {
+                  "label": "Breakfast",
+                  "minutes": 15
+                }
+              ]
+            },
+            {
+              "id": "t2",
+              "name": "Pickup from Schiphol",
+              "deadlineLabel": "Pickup from Schiphol",
+              "deadlineTime": "11:00",
+              "updatedAt": 1,
+              "steps": [
+                {
+                  "label": "Deplane",
+                  "minutes": -10
+                },
+                {
+                  "label": "Passport queue",
+                  "minutes": -10
+                },
+                {
+                  "label": "Park",
+                  "minutes": 5
+                },
+                {
+                  "label": "Drive",
+                  "minutes": 35
+                }
+              ]
+            },
+            {
+              "id": "t3",
+              "name": "Football practice",
+              "deadlineLabel": "Practice starts",
+              "deadlineTime": "18:45",
+              "updatedAt": 1,
+              "steps": [
+                {
+                  "label": "Bike to the club",
+                  "minutes": 15
+                },
+                {
+                  "label": "Change",
+                  "minutes": 10
+                }
+              ]
+            }
+          ]
+        },
+        "backwards-planner:v1": {
+          "version": 1,
+          "deadline": "{{tomorrow}}T08:30",
+          "deadlineLabel": "School starts",
+          "steps": [
+            {
+              "id": "b1",
+              "label": "Bike to school",
+              "minutes": 15
+            },
+            {
+              "id": "b2",
+              "label": "Pack bag",
+              "minutes": 5
+            },
+            {
+              "id": "b3",
+              "label": "Breakfast",
+              "minutes": 15
+            }
+          ]
+        },
+        "backwards-planner:active-template:v1": "t1"
+      },
+      "steps": [
+        {
+          "click": "#tab-templates"
+        }
+      ],
+      "clip": [
+        ".tabs",
+        "#panel-templates"
+      ]
+    },
+    {
+      "name": "2026-10-24-picker-phone",
+      "storage": {
+        "backwards-planner:v1": {
+          "version": 1,
+          "deadline": "{{tomorrow}}T08:30",
+          "deadlineLabel": "School starts",
+          "steps": [
+            {
+              "id": "b1",
+              "label": "Bike to school",
+              "minutes": 15
+            },
+            {
+              "id": "b2",
+              "label": "Pack bag",
+              "minutes": 5
+            }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "click": "#deadline-open",
+          "wait": 700
+        }
+      ]
+    },
+    {
+      "name": "2026-10-24-picker-desktop",
+      "device": "desktop",
+      "storage": {
+        "backwards-planner:v1": {
+          "version": 1,
+          "deadline": "{{tomorrow}}T08:30",
+          "deadlineLabel": "School starts",
+          "steps": [
+            {
+              "id": "b1",
+              "label": "Bike to school",
+              "minutes": 15
+            },
+            {
+              "id": "b2",
+              "label": "Pack bag",
+              "minutes": 5
+            }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "click": "#deadline-open",
+          "wait": 700
+        }
+      ],
+      "clip": [
+        ".tabs",
+        "#deadline-picker",
+        "#steps"
+      ]
+    },
+    {
+      "name": "2026-10-24-reorder",
+      "storage": {
+        "backwards-planner:v1": {
+          "version": 1,
+          "deadline": "{{tomorrow}}T08:30",
+          "deadlineLabel": "School starts",
+          "steps": [
+            {
+              "id": "b1",
+              "label": "Bike to school",
+              "minutes": 15
+            },
+            {
+              "id": "b2",
+              "label": "Pack bag",
+              "minutes": 5
+            },
+            {
+              "id": "b3",
+              "label": "Breakfast",
+              "minutes": 15
+            }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "click": "#reorder"
+        }
+      ],
+      "clip": [
+        ".deadline",
+        "#steps",
+        ".actions"
+      ]
+    },
+    {
+      "name": "2026-10-24-insert",
+      "storage": {
+        "backwards-planner:v1": {
+          "version": 1,
+          "deadline": "{{tomorrow}}T08:30",
+          "deadlineLabel": "School starts",
+          "steps": [
+            {
+              "id": "b1",
+              "label": "Bike to school",
+              "minutes": 15
+            },
+            {
+              "id": "b2",
+              "label": "Pack bag",
+              "minutes": 5
+            },
+            {
+              "id": "b3",
+              "label": "Breakfast",
+              "minutes": 15
+            }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "click": "#insert"
+        }
+      ],
+      "clip": [
+        ".deadline",
+        "#steps",
+        ".actions"
+      ]
+    },
+    {
+      "name": "2026-10-24-share",
+      "shareTemplate": {
+        "name": "Pickup from Schiphol",
+        "deadlineLabel": "Pickup from Schiphol",
+        "deadlineTime": "11:00",
+        "steps": [
+          {
+            "label": "Deplane",
+            "minutes": -10
+          },
+          {
+            "label": "Passport queue",
+            "minutes": -10
+          },
+          {
+            "label": "Park",
+            "minutes": 5
+          },
+          {
+            "label": "Drive",
+            "minutes": 35
+          }
+        ]
+      },
+      "steps": [
+        {
+          "wait": 500
+        }
+      ],
+      "clip": [
+        ".tabs",
+        "#import-dialog"
+      ]
+    }
+  ]
+}

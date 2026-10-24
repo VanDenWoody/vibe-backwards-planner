@@ -15,6 +15,19 @@ home screen and it works offline.
 
 On Android, open that URL in Chrome and choose **Add to Home screen**.
 
+## What's new
+
+[![Backwards Planner release notes](release-notes/preview.png)](https://vandenwoody.github.io/vibe-backwards-planner/release-notes/)
+
+**[Release notes](https://vandenwoody.github.io/vibe-backwards-planner/release-notes/)**:
+every new feature, newest first, with screenshots of what changed.
+
+They are one page, `release-notes/index.html`, with a section per date. The
+1200×630 `release-notes/preview.png` is the link preview in chat apps and has
+no date on it, so it only changes when the app's look does. The service worker
+leaves `/release-notes` to the network, so a shared link opens the notes, not
+the app.
+
 ## Run locally
 
     python -m http.server 8000
