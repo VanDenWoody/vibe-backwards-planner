@@ -2,13 +2,10 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   LEGACY_TEMPLATES_KEY,
-  PREVIEW_KEY,
   SYNC_KEY,
   TEMPLATES_KEY,
-  loadSyncPreview,
   loadSyncState,
   loadTemplates,
-  saveSyncPreview,
   saveSyncState,
   saveTemplates,
 } from "./storage.js";
@@ -35,7 +32,6 @@ test("the storage keys are the agreed ones", () => {
   assert.equal(TEMPLATES_KEY, "backwards-planner:templates:v2");
   assert.equal(LEGACY_TEMPLATES_KEY, "backwards-planner:templates:v1");
   assert.equal(SYNC_KEY, "backwards-planner:sync:v1");
-  assert.equal(PREVIEW_KEY, "backwards-planner:sync-preview:v1");
 });
 
 test("loadTemplates migrates from the v1 key", () => {
@@ -78,14 +74,4 @@ test("saveSyncState round-trips", () => {
   const state = { enabled: true, email: "a@b.c", lastSyncedAt: 42, dirty: true };
   saveSyncState(state);
   assert.deepEqual(loadSyncState(), state);
-});
-
-test("saveSyncPreview(false) removes the key", () => {
-  assert.equal(loadSyncPreview(), false);
-  saveSyncPreview(true);
-  assert.equal(store.get(PREVIEW_KEY), "1");
-  assert.equal(loadSyncPreview(), true);
-  saveSyncPreview(false);
-  assert.equal(store.has(PREVIEW_KEY), false);
-  assert.equal(loadSyncPreview(), false);
 });

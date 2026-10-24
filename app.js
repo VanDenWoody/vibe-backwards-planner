@@ -21,12 +21,10 @@ import {
 import {
   loadActiveTemplateId,
   loadPlan,
-  loadSyncPreview,
   loadSyncState,
   loadTemplates,
   savePlan,
   saveActiveTemplateId,
-  saveSyncPreview,
   saveSyncState,
   saveTemplates,
 } from "./storage.js";
@@ -79,11 +77,9 @@ const importAllRowEl = document.querySelector("#import-all-row");
 const importAllEl = document.querySelector("#import-all");
 const importAllLabelEl = document.querySelector("#import-all-label");
 const importButtonsEl = document.querySelector("#import-buttons");
-const syncEl = document.querySelector("#sync");
 const syncTextEl = document.querySelector("#sync-text");
 const syncActionEl = document.querySelector("#sync-action");
 const syncMoreEl = document.querySelector("#sync-more");
-const templatesPanelEl = document.querySelector("#panel-templates");
 
 const timeFmt = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -127,9 +123,6 @@ let insertAt = null;
 let pending = null;
 let pendingTimer = 0;
 
-// Drive sync is a preview behind #sync until it has been tried on real
-// devices. Without the flag nothing about sync renders, loads or calls out.
-let syncPreview = loadSyncPreview();
 const syncState = loadSyncState();
 
 function formatAt(date, withDate) {
@@ -1355,9 +1348,6 @@ const SYNC_ROWS = {
 const NEEDS_GIS = new Set(["on", "sign-in", "retry", "resolve"]);
 
 function renderSync() {
-  syncEl.hidden = !syncPreview;
-  if (!syncPreview) return;
-
   const row = SYNC_ROWS[syncStatus];
   let text = row.text ?? "";
   if (syncStatus === "synced") {
@@ -1401,7 +1391,7 @@ function restingSyncStatus() {
 }
 
 function ensureGis() {
-  if (!syncPreview || homeScreenIos || auth !== null) return;
+  if (homeScreenIos || auth !== null) return;
   loadGis()
     .then(() => {
       if (auth !== null) return;
@@ -1452,7 +1442,7 @@ function describeSyncError(error) {
 }
 
 function scheduleSync() {
-  if (!syncPreview || !syncState.enabled) return;
+  if (!syncState.enabled) return;
   window.clearTimeout(syncTimer);
   syncTimer = window.setTimeout(() => requestSync({ interactive: false }), SYNC_DEBOUNCE_MS);
 }
@@ -1504,7 +1494,7 @@ async function resolveClashes(clashes) {
 // Runs one sync, or marks one to run after the current one. Automatic syncs
 // (interactive: false) never open a popup or a dialog.
 async function requestSync({ interactive }) {
-  if (!syncPreview || !syncState.enabled || homeScreenIos) return;
+  if (!syncState.enabled || homeScreenIos) return;
   if (syncStatus === "newer") return;
   if (syncStatus === "paused" && !interactive) return;
   if (cycleRunning) {
@@ -1657,13 +1647,13 @@ document.addEventListener("visibilitychange", () => {
 
 // A running cycle owns the row until it ends; it reports offline itself.
 window.addEventListener("online", () => {
-  if (!syncPreview || !syncState.enabled || homeScreenIos || cycleRunning) return;
+  if (!syncState.enabled || homeScreenIos || cycleRunning) return;
   if (syncStatus === "offline") setSyncStatus(restingSyncStatus());
   requestSync({ interactive: false });
 });
 
 window.addEventListener("offline", () => {
-  if (!syncPreview || !syncState.enabled || homeScreenIos || cycleRunning) return;
+  if (!syncState.enabled || homeScreenIos || cycleRunning) return;
   if (syncStatus !== "paused" && syncStatus !== "newer") setSyncStatus("offline");
 });
 
@@ -1672,27 +1662,12 @@ function startSync() {
   if (syncState.enabled) ensureGis();
 }
 
-// #sync switches the sync preview on for this browser, #nosync off. Cleared
-// like a shared link, so the address bar does not keep it.
-function takeSyncFlag() {
-  const hash = window.location.hash;
-  if (hash !== "#sync" && hash !== "#nosync") return;
-  window.history.replaceState(null, "", window.location.pathname + window.location.search);
-  syncPreview = hash === "#sync";
-  saveSyncPreview(syncPreview);
-  if (!syncPreview) window.clearTimeout(syncTimer);
-  startSync();
-  if (!templatesPanelEl.hidden) ensureGis();
-}
-
 window.addEventListener("hashchange", takeSharedLink);
-window.addEventListener("hashchange", takeSyncFlag);
 
 deadlineInputEl.value = state.deadline;
 deadlineLabelEl.value = state.deadlineLabel;
 render();
 startSync();
-takeSyncFlag();
 takeSharedLink();
 
 if ("serviceWorker" in navigator) {
