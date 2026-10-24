@@ -7,6 +7,7 @@ import {
   planStepsFrom,
   removeTemplate,
   saveTemplate,
+  stampChanges,
 } from "./templates.js";
 import {
   SHARE_PARAM,
@@ -20,11 +21,24 @@ import {
 import {
   loadActiveTemplateId,
   loadPlan,
+  loadSyncPreview,
+  loadSyncState,
   loadTemplates,
   savePlan,
   saveActiveTemplateId,
+  saveSyncPreview,
+  saveSyncState,
   saveTemplates,
 } from "./storage.js";
+import {
+  AuthError,
+  DriveError,
+  createAuth,
+  createDriveClient,
+  fetchEmail,
+  loadGis,
+  runSyncCycle,
+} from "./drive.js";
 
 const UNDO_MS = 6000;
 
@@ -65,6 +79,11 @@ const importAllRowEl = document.querySelector("#import-all-row");
 const importAllEl = document.querySelector("#import-all");
 const importAllLabelEl = document.querySelector("#import-all-label");
 const importButtonsEl = document.querySelector("#import-buttons");
+const syncEl = document.querySelector("#sync");
+const syncTextEl = document.querySelector("#sync-text");
+const syncActionEl = document.querySelector("#sync-action");
+const syncMoreEl = document.querySelector("#sync-more");
+const templatesPanelEl = document.querySelector("#panel-templates");
 
 const timeFmt = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -107,6 +126,11 @@ let insertAt = null;
 // and a template. Only one is ever pending: a second action commits the first.
 let pending = null;
 let pendingTimer = 0;
+
+// Drive sync is a preview behind #sync until it has been tried on real
+// devices. Without the flag nothing about sync renders, loads or calls out.
+let syncPreview = loadSyncPreview();
+const syncState = loadSyncState();
 
 function formatAt(date, withDate) {
   const time = timeFmt.format(date);
@@ -528,6 +552,9 @@ function selectTab(tab, { focus = true } = {}) {
   if (tab !== templatesTabEl && naming !== null) setNaming(null);
   if (tab !== planningTabEl && reordering) setReordering(false);
   if (tab !== planningTabEl && inserting) setInserting(false);
+  // Google's script is fetched before Turn on can be tapped, because the
+  // popup has to open inside that tap, with nothing awaited first.
+  if (tab === templatesTabEl) ensureGis();
 }
 
 function render() {
@@ -838,7 +865,23 @@ addStepEl.addEventListener("submit", (event) => {
   newLabelEl.focus();
 });
 
+// Every local change to the library goes through here, so this is where it
+// gets dated for sync: stampChanges marks what is new, edited or gone.
 function commitLibrary(next) {
+  library = stampChanges(library, next, Date.now());
+  saveTemplates(library);
+  // Without sync there is nothing to wait for, and no sync key to write.
+  if (syncState.enabled) {
+    syncState.dirty = true;
+    saveSyncState(syncState);
+  }
+  renderTemplates();
+  scheduleSync();
+}
+
+// A library that came back from a sync is saved as it is: stamping it would
+// re-date every template the other devices sent to now.
+function applySyncedLibrary(next) {
   library = next;
   saveTemplates(library);
   renderTemplates();
@@ -1269,11 +1312,387 @@ importFileEl.addEventListener("change", async () => {
   else importTemplates(incoming, { fromFile: true });
 });
 
+// ---- Drive sync ----------------------------------------------------------
+
+// Where the sync row stands; see SYNC_ROWS for what each shows. syncReason
+// carries the short reason for "error".
+let syncStatus = "off";
+let syncReason = "";
+let auth = null;
+let gisFailed = false;
+let syncTimer = 0;
+let cycleRunning = false;
+let runAgain = false;
+let runAgainInteractive = false;
+const SYNC_DEBOUNCE_MS = 3000;
+
+// The iPhone home-screen app loses the popup's way back, so it never tries.
+const homeScreenIos = navigator.standalone === true;
+
+const driveClient = createDriveClient(
+  (url, init) => window.fetch(url, init),
+  () => (auth === null ? null : auth.token())
+);
+
+const SYNC_ROWS = {
+  off: { text: "Sync templates with Google Drive", action: ["on", "Turn on"] },
+  syncing: { text: "Syncing…" },
+  synced: { more: true },
+  "needs-sign-in": { row: "sign-in" },
+  offline: { text: "Offline — changes sync when you're back" },
+  paused: { text: "Sync paused — name clash", action: ["resolve", "Resolve"] },
+  newer: { text: "Drive has newer templates. Reload to update.", action: ["reload", "Reload"] },
+  error: { action: ["retry", "Retry"] },
+  "gis-unavailable": { text: "Google sign-in could not load", action: ["load", "Retry"] },
+  "ios-standalone": { text: "Sync works in Safari, not in the home-screen app" },
+  "sign-in-failed": {
+    text: "Google sign-in didn't work in this browser. Use Export/Import instead.",
+    action: ["retry", "Retry"],
+  },
+};
+
+// Taps that may open Google's popup need the script loaded first.
+const NEEDS_GIS = new Set(["on", "sign-in", "retry", "resolve"]);
+
+function renderSync() {
+  syncEl.hidden = !syncPreview;
+  if (!syncPreview) return;
+
+  const row = SYNC_ROWS[syncStatus];
+  let text = row.text ?? "";
+  if (syncStatus === "synced") {
+    text = `Synced ${timeFmt.format(new Date(syncState.lastSyncedAt))}`;
+    if (syncState.email !== "") text += ` · ${syncState.email}`;
+  } else if (syncStatus === "error") {
+    text = `Sync failed: ${syncReason}`;
+  }
+  syncTextEl.textContent = text;
+
+  let action = row.action ?? null;
+  if (row.row !== undefined) {
+    action = [row.row, `Tap to sync${syncState.dirty ? " · changes waiting" : ""}`];
+  }
+  syncActionEl.hidden = action === null;
+  syncActionEl.classList.toggle("sync__action--row", row.row !== undefined);
+  if (action !== null) {
+    syncActionEl.dataset.sync = action[0];
+    syncActionEl.textContent = action[1];
+    syncActionEl.disabled = NEEDS_GIS.has(action[0]) && auth === null;
+  }
+
+  syncMoreEl.hidden = row.more !== true;
+  if (syncMoreEl.hidden) syncMoreEl.open = false;
+}
+
+function setSyncStatus(status, reason = "") {
+  syncStatus = status;
+  syncReason = reason;
+  renderSync();
+}
+
+// What the row shows when nothing is happening.
+function restingSyncStatus() {
+  if (homeScreenIos) return "ios-standalone";
+  if (gisFailed) return "gis-unavailable";
+  if (!syncState.enabled) return "off";
+  if (!navigator.onLine) return "offline";
+  if (auth === null || auth.token() === null) return "needs-sign-in";
+  return "synced";
+}
+
+function ensureGis() {
+  if (!syncPreview || homeScreenIos || auth !== null) return;
+  loadGis()
+    .then(() => {
+      if (auth !== null) return;
+      auth = createAuth({ onToken: tokenArrived, onError: signInFailed });
+      gisFailed = false;
+      if (syncStatus !== "syncing") setSyncStatus(restingSyncStatus());
+    })
+    .catch(() => {
+      gisFailed = true;
+      setSyncStatus("gis-unavailable");
+    });
+}
+
+async function tokenArrived(token) {
+  if (!syncState.enabled) {
+    // Turn on: learn which account this is before calling sync on.
+    setSyncStatus("syncing");
+    try {
+      syncState.email = await fetchEmail((url, init) => window.fetch(url, init), token);
+    } catch (error) {
+      auth.forget();
+      setSyncStatus("error", describeSyncError(error));
+      return;
+    }
+    syncState.enabled = true;
+    saveSyncState(syncState);
+  }
+  // Every token comes from a tap, so this sync may ask about clashes.
+  requestSync({ interactive: true });
+}
+
+function signInFailed(type) {
+  if (type === "popup_failed_to_open" || type === "popup_closed") {
+    setSyncStatus("sign-in-failed");
+  } else if (type === "scope_denied") {
+    setSyncStatus("error", "Drive access was not allowed");
+  } else if (type === "access_denied") {
+    setSyncStatus("error", "Google access was not allowed");
+  } else {
+    setSyncStatus("error", "Google sign-in failed");
+  }
+}
+
+function describeSyncError(error) {
+  if (error instanceof DriveError) return error.message;
+  if (error instanceof AuthError) return "sign-in expired";
+  return "no connection to Google";
+}
+
+function scheduleSync() {
+  if (!syncPreview || !syncState.enabled) return;
+  window.clearTimeout(syncTimer);
+  syncTimer = window.setTimeout(() => requestSync({ interactive: false }), SYNC_DEBOUNCE_MS);
+}
+
+// A remote change must not land while an undo is on offer (the undo restores a
+// snapshot and would delete what arrived, on every device), nor under a
+// half-typed name or an open dialog.
+function syncHeld() {
+  return pending !== null || naming !== null || importDialogEl.open;
+}
+
+function whenQuiet() {
+  return new Promise((resolve) => {
+    const check = () => (syncHeld() ? window.setTimeout(check, 250) : resolve());
+    check();
+  });
+}
+
+// One clash at a time through the import dialog. null means the user closed
+// it: the cycle then writes nothing and the row stays paused.
+async function resolveClashes(clashes) {
+  // The dialog is shared with Import, which may have opened meanwhile.
+  await whenQuiet();
+  const answers = [];
+  let remembered = "";
+  for (let i = 0; i < clashes.length; i += 1) {
+    if (remembered !== "") {
+      answers.push(remembered);
+      continue;
+    }
+    const { local, remote } = clashes[i];
+    const others = clashes.length - i - 1;
+    const answer = await ask({
+      title: `You have two templates called “${local.name}”.`,
+      body: [facts(`This device: ${summarize(local)}`, `Other device: ${summarize(remote)}`)],
+      buttons: [
+        { value: "keep-both", label: "Keep both", primary: true },
+        { value: "replace", label: "Replace with other device's" },
+      ],
+      all: others === 0 ? "" : `Do the same for the ${others} other${others === 1 ? "" : "s"}`,
+    });
+    if (answer.choice === "") return null;
+    answers.push(answer.choice);
+    if (answer.all) remembered = answer.choice;
+  }
+  return answers;
+}
+
+// Runs one sync, or marks one to run after the current one. Automatic syncs
+// (interactive: false) never open a popup or a dialog.
+async function requestSync({ interactive }) {
+  if (!syncPreview || !syncState.enabled || homeScreenIos) return;
+  if (syncStatus === "newer") return;
+  if (syncStatus === "paused" && !interactive) return;
+  if (cycleRunning) {
+    runAgain = true;
+    runAgainInteractive ||= interactive;
+    return;
+  }
+  if (!navigator.onLine) {
+    setSyncStatus("offline");
+    return;
+  }
+  if (auth === null) {
+    // Google's script is not here (still loading, or it failed while
+    // offline): show that, and try to load it again.
+    setSyncStatus(restingSyncStatus());
+    ensureGis();
+    return;
+  }
+  if (auth.token() === null) {
+    setSyncStatus("needs-sign-in");
+    return;
+  }
+
+  cycleRunning = true;
+  setSyncStatus("syncing");
+  try {
+    await syncLoop(interactive);
+  } catch (error) {
+    // Turned off while Drive was busy: the forgotten token is why it failed.
+    if (!syncState.enabled) {
+      setSyncStatus("off");
+    } else if (error instanceof AuthError) {
+      auth.forget();
+      setSyncStatus("needs-sign-in");
+    } else if (!navigator.onLine) {
+      setSyncStatus("offline");
+    } else {
+      setSyncStatus("error", describeSyncError(error));
+    }
+  } finally {
+    cycleRunning = false;
+  }
+
+  if (runAgain) {
+    const again = runAgainInteractive;
+    runAgain = false;
+    runAgainInteractive = false;
+    requestSync({ interactive: again });
+  }
+}
+
+async function syncLoop(interactive) {
+  // "again" (another device wrote during ours) earns one extra round; a local
+  // change made while the cycle ran earns as many as it takes.
+  let raceRounds = 1;
+  for (;;) {
+    await whenQuiet();
+    const started = library;
+    const result = await runSyncCycle({
+      client: driveClient,
+      local: started,
+      interactive,
+      resolve: resolveClashes,
+      now: Date.now(),
+    });
+    if (!syncState.enabled) return;
+    if (result.status === "paused" || result.status === "newer") {
+      setSyncStatus(result.status);
+      return;
+    }
+
+    await whenQuiet();
+    // Edited here while Drive was busy: what was written lacks that edit, so
+    // go round again rather than overwrite it with the older merge.
+    if (library !== started) continue;
+
+    applySyncedLibrary(result.library);
+    for (const { dropped, kept } of result.merged) {
+      if (activeId === dropped) setActive(kept);
+    }
+    if (activeId !== "" && findTemplate(library, activeId) === undefined) setActive("");
+
+    if (result.status === "again" && raceRounds > 0) {
+      raceRounds -= 1;
+      continue;
+    }
+    syncState.lastSyncedAt = Date.now();
+    syncState.dirty = false;
+    saveSyncState(syncState);
+    setSyncStatus("synced");
+    return;
+  }
+}
+
+function turnSyncOff() {
+  window.clearTimeout(syncTimer);
+  if (auth !== null) auth.forget();
+  syncState.enabled = false;
+  syncState.email = "";
+  syncState.lastSyncedAt = 0;
+  saveSyncState(syncState);
+  setSyncStatus("off");
+}
+
+function syncTap(action) {
+  if (action === "reload") {
+    window.location.reload();
+  } else if (action === "load") {
+    gisFailed = false;
+    setSyncStatus(restingSyncStatus());
+    ensureGis();
+  } else if (action === "off") {
+    turnSyncOff();
+  } else if (action === "on" || !syncState.enabled) {
+    // Synchronous on purpose: anything awaited before this and the browser
+    // no longer counts it as part of the tap, and blocks the popup.
+    auth.request("consent", "");
+  } else if (auth.token() === null) {
+    auth.request("", syncState.email);
+  } else {
+    requestSync({ interactive: true });
+  }
+}
+
+syncActionEl.addEventListener("click", () => {
+  if (auth === null && NEEDS_GIS.has(syncActionEl.dataset.sync)) return;
+  syncTap(syncActionEl.dataset.sync);
+});
+
+syncMoreEl.addEventListener("click", (event) => {
+  const item = event.target.closest("button[data-sync]");
+  if (item === null) return;
+  syncMoreEl.open = false;
+  syncTap(item.dataset.sync);
+});
+
+document.addEventListener("click", (event) => {
+  if (syncMoreEl.open && !syncMoreEl.contains(event.target)) syncMoreEl.open = false;
+});
+
+syncMoreEl.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !syncMoreEl.open) return;
+  syncMoreEl.open = false;
+  syncMoreEl.querySelector("summary").focus();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") requestSync({ interactive: false });
+});
+
+// A running cycle owns the row until it ends; it reports offline itself.
+window.addEventListener("online", () => {
+  if (!syncPreview || !syncState.enabled || homeScreenIos || cycleRunning) return;
+  if (syncStatus === "offline") setSyncStatus(restingSyncStatus());
+  requestSync({ interactive: false });
+});
+
+window.addEventListener("offline", () => {
+  if (!syncPreview || !syncState.enabled || homeScreenIos || cycleRunning) return;
+  if (syncStatus !== "paused" && syncStatus !== "newer") setSyncStatus("offline");
+});
+
+function startSync() {
+  if (!cycleRunning) setSyncStatus(restingSyncStatus());
+  if (syncState.enabled) ensureGis();
+}
+
+// #sync switches the sync preview on for this browser, #nosync off. Cleared
+// like a shared link, so the address bar does not keep it.
+function takeSyncFlag() {
+  const hash = window.location.hash;
+  if (hash !== "#sync" && hash !== "#nosync") return;
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  syncPreview = hash === "#sync";
+  saveSyncPreview(syncPreview);
+  if (!syncPreview) window.clearTimeout(syncTimer);
+  startSync();
+  if (!templatesPanelEl.hidden) ensureGis();
+}
+
 window.addEventListener("hashchange", takeSharedLink);
+window.addEventListener("hashchange", takeSyncFlag);
 
 deadlineInputEl.value = state.deadline;
 deadlineLabelEl.value = state.deadlineLabel;
 render();
+startSync();
+takeSyncFlag();
 takeSharedLink();
 
 if ("serviceWorker" in navigator) {

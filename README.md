@@ -28,6 +28,51 @@ ES module imports and service workers both require a real origin.
 
 Runs `node --test` over the pure modules. No `npm install` required.
 
+## Sync (preview)
+
+Templates can sync between one person's devices through their own Google Drive.
+It is a preview behind a hidden flag until it has been tried on real devices:
+
+- Open the app with `#sync` at the end of the URL to show the sync row on the
+  Templates tab in this browser; `#nosync` hides it again. Without the flag no
+  sync code runs and Google's script is never loaded.
+- **Turn on** asks Google for access to the app's own hidden Drive folder
+  (`drive.appdata`) and your email address. Nothing else in your Drive is
+  visible to the app.
+- Changes sync about 3 seconds after you make them, when the app comes back to
+  the foreground, when the connection returns, and on **Sync now**.
+- Google gives a browser app a token for about an hour and no way to renew it
+  without a tap. After that, the row shows **Tap to sync**; one tap renews it.
+  Local changes wait meanwhile and are never lost.
+- Two different templates with the same name are asked about (Keep both /
+  Replace with other device's); identical ones are merged silently.
+- The iPhone home-screen app is not supported (Google's popup cannot return to
+  it); use the app in a Safari tab, or Export/Import.
+
+The library is stored as version 2 (`updatedAt` per template, tombstones for
+deletes) under its own key, `backwards-planner:templates:v2`. The v1 key is read
+once for migration and never written, so an older cached app version keeps its
+own copy and cannot damage the new one. Export files and share links stay
+version 1. `sync.js` holds the merge rules, `drive.js` the Google side.
+
+### Google Cloud setup
+
+Done once, by the owner of the site. The client id is public and lives in
+`drive.js` as `GOOGLE_CLIENT_ID`.
+
+1. Create a Google Cloud project and enable the **Google Drive API**.
+2. Google Auth Platform → Branding: app name, support email, home page
+   `https://vandenwoody.github.io/vibe-backwards-planner/`, privacy policy
+   `https://vandenwoody.github.io/vibe-backwards-planner/privacy.html`,
+   authorized domain `vandenwoody.github.io`.
+3. Data access: scopes `https://www.googleapis.com/auth/drive.appdata`,
+   `openid`, `email` (all non-sensitive, so no verification is required).
+4. Audience: External, then **Publish app** (In production). Testing mode would
+   cap users at 100 and expire every grant after seven days.
+5. Clients: an OAuth client of type *Web application* with authorized
+   JavaScript origins `https://vandenwoody.github.io`, `http://localhost:8000`
+   and `http://localhost:8010`. No redirect URIs: sign-in uses a popup.
+
 ## Deploy
 
 Pushing to `main` publishes. There is no build step — GitHub Pages serves the

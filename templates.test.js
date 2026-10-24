@@ -10,10 +10,13 @@ import {
   saveTemplate,
   removeTemplate,
   planStepsFrom,
+  sameContent,
+  stampChanges,
 } from "./templates.js";
 
 test("emptyLibrary has the current version and no items", () => {
-  assert.deepEqual(emptyLibrary(), { version: TEMPLATES_VERSION, items: [] });
+  assert.deepEqual(emptyLibrary(), { version: TEMPLATES_VERSION, items: [], tombstones: [] });
+  assert.equal(TEMPLATES_VERSION, 2);
 });
 
 test("emptyLibrary returns a fresh object each time", () => {
@@ -36,15 +39,17 @@ test("normalizeLibrary accepts well-formed items and drops unknown fields", () =
     junk: 1,
   });
   assert.deepEqual(result, {
-    version: 1,
+    version: 2,
     items: [
       {
         id: "t1",
         name: "Airport run",
         deadlineLabel: "Flight departs",
         steps: [{ label: "Check in", minutes: 45 }],
+        updatedAt: 0,
       },
     ],
+    tombstones: [],
   });
 });
 
@@ -57,7 +62,7 @@ test("normalizeLibrary defaults a missing deadlineLabel", () => {
 });
 
 test("normalizeLibrary drops only the malformed items, keeping the rest", () => {
-  const good = { id: "t1", name: "Keep me", deadlineLabel: "", steps: [] };
+  const good = { id: "t1", name: "Keep me", deadlineLabel: "", steps: [], updatedAt: 0 };
   const result = normalizeLibrary({
     version: 1,
     items: [
@@ -82,8 +87,9 @@ test("normalizeLibrary discards a library that is malformed as a whole", () => {
     42,
     "a string",
     [],
-    { version: 2, items: [] },
+    { version: 3, items: [], tombstones: [] },
     { version: 1 },
+    { version: 2 },
     { version: 1, items: "nope" },
   ];
   for (const raw of rejects) {
@@ -231,4 +237,128 @@ test("planStepsFrom puts negative steps on top", () => {
     { label: "Passport queue", minutes: -25 },
   ]);
   assert.deepEqual(planStepsFrom(template).map((s) => s.minutes), [-25, 45]);
+});
+
+test("normalizeLibrary migrates version 1 to version 2", () => {
+  const result = normalizeLibrary({ version: 1, items: [{ id: "t1", name: "A", deadlineLabel: "", steps: [] }] });
+  assert.deepEqual(result, {
+    version: 2,
+    items: [{ id: "t1", name: "A", deadlineLabel: "", steps: [], updatedAt: 0 }],
+    tombstones: [],
+  });
+});
+
+test("normalizeLibrary keeps a version 2 library with its updatedAt", () => {
+  const raw = {
+    version: 2,
+    items: [{ id: "t1", name: "A", deadlineLabel: "", steps: [], updatedAt: 7 }],
+    tombstones: [{ id: "t2", deletedAt: 9 }],
+  };
+  assert.deepEqual(normalizeLibrary(raw), raw);
+});
+
+test("normalizeLibrary reads a missing or invalid updatedAt as 0", () => {
+  const result = normalizeLibrary({
+    version: 2,
+    items: [
+      { id: "t1", name: "A", steps: [] },
+      { id: "t2", name: "B", steps: [], updatedAt: "5" },
+    ],
+    tombstones: [],
+  });
+  assert.deepEqual(result.items.map((item) => item.updatedAt), [0, 0]);
+});
+
+test("normalizeLibrary keeps valid tombstones and drops malformed ones", () => {
+  const result = normalizeLibrary({
+    version: 2,
+    items: [],
+    tombstones: [{ id: "t1", deletedAt: 5 }, { id: "" }, null, { id: "t2", deletedAt: "x" }],
+  });
+  assert.deepEqual(result.tombstones, [{ id: "t1", deletedAt: 5 }]);
+});
+
+test("normalizeLibrary rejects version 3", () => {
+  assert.deepEqual(normalizeLibrary({ version: 3, items: [], tombstones: [] }), emptyLibrary());
+});
+
+test("createTemplate starts unstamped", () => {
+  assert.equal(createTemplate("A", "", []).updatedAt, 0);
+});
+
+test("saveTemplate and removeTemplate keep the tombstones as they are", () => {
+  const a = { id: "a", name: "A", deadlineLabel: "", steps: [], updatedAt: 1 };
+  const library = { version: 2, items: [a], tombstones: [{ id: "x", deletedAt: 3 }] };
+  assert.deepEqual(saveTemplate(library, { ...a, name: "B" }).tombstones, [{ id: "x", deletedAt: 3 }]);
+  assert.deepEqual(removeTemplate(library, "a").tombstones, [{ id: "x", deletedAt: 3 }]);
+});
+
+test("sameContent compares name, deadline and steps in order", () => {
+  const a = { id: "a", name: "A", deadlineLabel: "D", steps: [{ label: "x", minutes: 1 }, { label: "y", minutes: 2 }], updatedAt: 1 };
+  assert.equal(sameContent(a, { ...a, id: "b", updatedAt: 9 }), true);
+  assert.equal(sameContent(a, { ...a, name: "B" }), false);
+  assert.equal(sameContent(a, { ...a, deadlineLabel: "E" }), false);
+  assert.equal(sameContent(a, { ...a, steps: [...a.steps].reverse() }), false);
+  assert.equal(sameContent(a, { ...a, steps: [{ label: "x", minutes: 1 }, { label: "y", minutes: 3 }] }), false);
+  assert.equal(sameContent(a, { ...a, steps: [{ label: "x", minutes: 1 }] }), false);
+});
+
+function item(id, name, updatedAt, steps = []) {
+  return { id, name, deadlineLabel: "", steps, updatedAt };
+}
+
+test("stampChanges stamps new and edited items, leaves unchanged ones", () => {
+  const previous = { version: 2, items: [item("a", "A", 1), item("b", "B", 1)], tombstones: [] };
+  const next = { version: 2, items: [item("a", "A", 1), item("b", "B2", 1), item("c", "C", 0)], tombstones: [] };
+  const result = stampChanges(previous, next, 100);
+  assert.deepEqual(result.items.map((i) => [i.id, i.updatedAt]), [["a", 1], ["b", 100], ["c", 100]]);
+  assert.deepEqual(result.tombstones, []);
+});
+
+test("stampChanges adds a tombstone for a removed item", () => {
+  const previous = { version: 2, items: [item("a", "A", 1)], tombstones: [] };
+  const next = { version: 2, items: [], tombstones: [] };
+  assert.deepEqual(stampChanges(previous, next, 100), {
+    version: 2,
+    items: [],
+    tombstones: [{ id: "a", deletedAt: 100 }],
+  });
+});
+
+test("stampChanges re-stamps a restored item and drops its tombstone", () => {
+  const previous = { version: 2, items: [], tombstones: [{ id: "a", deletedAt: 50 }] };
+  const next = { version: 2, items: [item("a", "A", 1)], tombstones: [] };
+  assert.deepEqual(stampChanges(previous, next, 100), {
+    version: 2,
+    items: [item("a", "A", 100)],
+    tombstones: [],
+  });
+});
+
+test("stampChanges re-stamps a restored item even when next still carries its tombstone", () => {
+  const previous = { version: 2, items: [], tombstones: [{ id: "a", deletedAt: 50 }] };
+  const next = { version: 2, items: [item("a", "A", 1)], tombstones: [{ id: "a", deletedAt: 50 }] };
+  const result = stampChanges(previous, next, 100);
+  assert.equal(result.items[0].updatedAt, 100);
+  assert.deepEqual(result.tombstones, []);
+});
+
+test("stampChanges keeps tombstones from previous that an older snapshot lacks", () => {
+  const previous = { version: 2, items: [item("b", "B", 1)], tombstones: [{ id: "x", deletedAt: 40 }] };
+  const next = { version: 2, items: [item("b", "B", 1)], tombstones: [] };
+  assert.deepEqual(stampChanges(previous, next, 100).tombstones, [{ id: "x", deletedAt: 40 }]);
+});
+
+test("stampChanges ignores the order of items", () => {
+  const previous = { version: 2, items: [item("a", "A", 1), item("b", "B", 2)], tombstones: [] };
+  const next = { version: 2, items: [item("b", "B", 2), item("a", "A", 1)], tombstones: [] };
+  assert.deepEqual(stampChanges(previous, next, 100), next);
+});
+
+test("stampChanges leaves its inputs untouched", () => {
+  const previous = { version: 2, items: [item("a", "A", 1)], tombstones: [] };
+  const next = { version: 2, items: [item("a", "A2", 1)], tombstones: [] };
+  const snapshot = JSON.stringify([previous, next]);
+  stampChanges(previous, next, 100);
+  assert.equal(JSON.stringify([previous, next]), snapshot);
 });

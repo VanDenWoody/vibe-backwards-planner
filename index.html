@@ -121,6 +121,17 @@
           <button id="import-open" class="transfer__action" type="button">Import…</button>
         </p>
         <input id="import-file" type="file" accept=".json,application/json" hidden />
+        <div id="sync" class="sync" hidden>
+          <span id="sync-text" class="sync__text" role="status"></span>
+          <button id="sync-action" class="sync__action" type="button" hidden></button>
+          <details id="sync-more" class="template__more sync__more" hidden>
+            <summary class="template__action template__more-toggle" aria-label="Sync options">⋯</summary>
+            <div class="template__menu">
+              <button class="template__menu-item" type="button" data-sync="now">Sync now</button>
+              <button class="template__menu-item" type="button" data-sync="off">Turn off</button>
+            </div>
+          </details>
+        </div>
       </section>
     </main>
 

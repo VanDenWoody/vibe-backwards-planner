@@ -1,14 +1,10 @@
-import {
-  TEMPLATES_VERSION,
-  createTemplate,
-  findTemplateByName,
-  normalizeLibrary,
-  normalizeTemplate,
-  saveTemplate,
-} from "./templates.js";
+import { createTemplate, findTemplateByName, normalizeTemplate, saveTemplate } from "./templates.js";
 
 export const SHARE_PARAM = "template";
 const SHARE_VERSION = 1;
+// Decoupled from TEMPLATES_VERSION: export files carry no sync data (updatedAt,
+// tombstones), so they stay readable by app versions before and after sync.
+export const EXPORT_VERSION = 1;
 
 // A shared template carries no id: the receiver's library mints its own, so an
 // id from someone else's phone can never collide with one already here.
@@ -71,7 +67,13 @@ export function readSharedLink(text) {
 }
 
 export function exportLibrary(library) {
-  return `${JSON.stringify({ version: TEMPLATES_VERSION, items: library.items }, null, 2)}\n`;
+  const items = library.items.map(({ id, name, deadlineLabel, steps }) => ({
+    id,
+    name,
+    deadlineLabel,
+    steps,
+  }));
+  return `${JSON.stringify({ version: EXPORT_VERSION, items }, null, 2)}\n`;
 }
 
 // Returns the templates in the file, or null when the file is not an export at
@@ -84,12 +86,18 @@ export function parseExportFile(text) {
     return null;
   }
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
-  if (raw.version !== TEMPLATES_VERSION || !Array.isArray(raw.items)) return null;
-  return normalizeLibrary(raw).items.map(({ name, deadlineLabel, steps }) => ({
-    name,
-    deadlineLabel,
-    steps,
-  }));
+  if (raw.version !== EXPORT_VERSION || !Array.isArray(raw.items)) return null;
+
+  const templates = [];
+  const seen = new Set();
+  for (const entry of raw.items) {
+    const template = normalizeTemplate(entry);
+    if (template === null || seen.has(template.id)) continue;
+    seen.add(template.id);
+    const { name, deadlineLabel, steps } = template;
+    templates.push({ name, deadlineLabel, steps });
+  }
+  return templates;
 }
 
 export function uniqueName(library, name) {
