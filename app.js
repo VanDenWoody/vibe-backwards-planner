@@ -1516,7 +1516,14 @@ async function requestSync({ interactive }) {
     setSyncStatus("offline");
     return;
   }
-  if (auth === null || auth.token() === null) {
+  if (auth === null) {
+    // Google's script is not here (still loading, or it failed while
+    // offline): show that, and try to load it again.
+    setSyncStatus(restingSyncStatus());
+    ensureGis();
+    return;
+  }
+  if (auth.token() === null) {
     setSyncStatus("needs-sign-in");
     return;
   }
@@ -1526,7 +1533,10 @@ async function requestSync({ interactive }) {
   try {
     await syncLoop(interactive);
   } catch (error) {
-    if (error instanceof AuthError) {
+    // Turned off while Drive was busy: the forgotten token is why it failed.
+    if (!syncState.enabled) {
+      setSyncStatus("off");
+    } else if (error instanceof AuthError) {
       auth.forget();
       setSyncStatus("needs-sign-in");
     } else if (!navigator.onLine) {
@@ -1645,19 +1655,20 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") requestSync({ interactive: false });
 });
 
+// A running cycle owns the row until it ends; it reports offline itself.
 window.addEventListener("online", () => {
-  if (!syncPreview || !syncState.enabled || homeScreenIos) return;
+  if (!syncPreview || !syncState.enabled || homeScreenIos || cycleRunning) return;
   if (syncStatus === "offline") setSyncStatus(restingSyncStatus());
   requestSync({ interactive: false });
 });
 
 window.addEventListener("offline", () => {
-  if (!syncPreview || !syncState.enabled || homeScreenIos) return;
+  if (!syncPreview || !syncState.enabled || homeScreenIos || cycleRunning) return;
   if (syncStatus !== "paused" && syncStatus !== "newer") setSyncStatus("offline");
 });
 
 function startSync() {
-  setSyncStatus(restingSyncStatus());
+  if (!cycleRunning) setSyncStatus(restingSyncStatus());
   if (syncState.enabled) ensureGis();
 }
 
