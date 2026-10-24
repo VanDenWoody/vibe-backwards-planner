@@ -35,6 +35,12 @@ export function moveStep(steps, index, offset) {
   return next;
 }
 
+export function insertStep(steps, index, step) {
+  const next = [...steps];
+  next.splice(Math.max(0, Math.min(index, next.length)), 0, step);
+  return next;
+}
+
 export function normalizePlan(raw) {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return emptyPlan();
   if (raw.version !== PLAN_VERSION) return emptyPlan();

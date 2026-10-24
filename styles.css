@@ -615,6 +615,37 @@ input:focus {
   display: block;
 }
 
+/* Insert mode: delete steps aside so a slot is the only thing to hit between
+   the rows. Names and minutes stay editable. */
+.steps--inserting .step {
+  grid-template-columns: var(--time-col) 1fr 3.5rem auto;
+  padding-right: var(--gutter);
+}
+
+.steps--inserting .step__delete {
+  display: none;
+}
+
+.insert-slot__open {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.insert-slot__open:hover {
+  background: var(--field);
+}
+
+/* Beats .add-step, which comes later in this file. */
+.add-step.insert-slot__form {
+  margin-top: 0;
+}
+
 .leave {
   display: flex;
   flex-wrap: wrap;
