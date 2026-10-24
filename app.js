@@ -291,7 +291,9 @@ function renderTemplates() {
   templateListEl.replaceChildren();
 
   if (naming !== null && naming.kind === "new") {
-    templateListEl.append(namingRow("", "Name this template"));
+    // The deadline's name is what the plan is called, so it is offered as the
+    // template's name. It is only a suggestion: nothing is saved until Save.
+    templateListEl.append(namingRow(state.deadlineLabel.trim(), "Name this template"));
   }
 
   for (const template of library.items) {

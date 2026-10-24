@@ -1,4 +1,4 @@
-const CACHE_NAME = "backwards-planner-v7";
+const CACHE_NAME = "backwards-planner-v8";
 
 const ASSETS = [
   "./",
