@@ -53,6 +53,8 @@ const deadlinePicker = createDeadlinePicker(document.querySelector("#deadline-pi
     state.deadline = deadline;
     savePlan(state);
     renderTimes();
+    // The name is what comes next, so the caret waits there.
+    deadlineLabelEl.focus();
   },
 });
 const hintEl = document.querySelector("#hint");
@@ -631,9 +633,11 @@ function undoPending() {
   restore();
 }
 
-deadlineOpenEl.addEventListener("click", () => {
+function openDeadlinePicker() {
   deadlinePicker.open(state.deadline, deadlineOpenEl);
-});
+}
+
+deadlineOpenEl.addEventListener("click", openDeadlinePicker);
 
 deadlineLabelEl.addEventListener("input", () => {
   state.deadlineLabel = deadlineLabelEl.value;
@@ -829,9 +833,28 @@ clearAllEl.addEventListener("click", () => {
     focusDeleteAt(0);
   });
   undoActionEl.focus();
+  // An empty plan starts with its deadline. Closing the picker without a pick
+  // hands focus back to Undo; a pick moves it on to the name, and the undo
+  // bar stays on screen either way.
+  openDeadlinePicker();
 });
 
 undoActionEl.addEventListener("click", undoPending);
+
+// Enter walks the fields in the order a plan is written: deadline name, then
+// the new step's name, then its minutes. Enter in the minutes adds the step.
+deadlineLabelEl.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  event.preventDefault();
+  newLabelEl.focus();
+});
+
+newLabelEl.addEventListener("keydown", (event) => {
+  // An empty name falls through to the submit, which says what is missing.
+  if (event.key !== "Enter" || event.isComposing || newLabelEl.value.trim() === "") return;
+  event.preventDefault();
+  newMinutesEl.focus();
+});
 
 newLabelEl.addEventListener("input", () => {
   newLabelEl.setCustomValidity("");
@@ -1734,7 +1757,10 @@ window.addEventListener("hashchange", takeSharedLink);
 deadlineLabelEl.value = state.deadlineLabel;
 render();
 startSync();
+// A shared link lands on the templates tab, with its own question to answer.
+const arrivedWithLink = window.location.hash.includes(`${SHARE_PARAM}=`);
 takeSharedLink();
+if (planIsEmpty() && !arrivedWithLink) openDeadlinePicker();
 
 if ("serviceWorker" in navigator) {
   // The page on screen was served from the old cache, so a new version only
