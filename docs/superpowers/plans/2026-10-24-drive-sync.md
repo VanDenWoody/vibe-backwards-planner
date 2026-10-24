@@ -14,7 +14,7 @@
 
 - Work on a new branch from up-to-date `main` (e.g. `feat/drive-sync`); open a PR against `main`; never merge it.
 - No dependencies, no build step. Every module that has tests must import cleanly under Node (no top-level `window`/`document`).
-- Bump `CACHE_NAME` in `sw.js` once per PR that changes cached files (main is at `backwards-planner-v10`; use the next free number when the PR is cut).
+- Bump `CACHE_NAME` in `sw.js` once per PR that changes cached files (main was at `backwards-planner-v12` on 2026-10-24; use the next free number when the PR is cut). `app.js` line numbers in this plan are approximate; main keeps moving.
 - Storage keys: library `backwards-planner:templates:v2` (v1 key `backwards-planner:templates:v1` is read-only, never written); sync state `backwards-planner:sync:v1`; preview flag `backwards-planner:sync-preview:v1`.
 - OAuth scopes, exactly: `https://www.googleapis.com/auth/drive.appdata openid email`.
 - Drive file: name `templates.json`, in `appDataFolder`.
