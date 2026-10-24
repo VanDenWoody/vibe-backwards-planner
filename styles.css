@@ -365,6 +365,60 @@ input:focus {
   color: var(--text);
 }
 
+/* One quiet line under Export/Import; only there with the #sync preview. */
+.sync {
+  margin: 0.25rem 0 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.sync__text:empty {
+  display: none;
+}
+
+.sync__action {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.sync__action:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sync__action:disabled {
+  color: var(--muted);
+  font-weight: normal;
+  cursor: default;
+}
+
+/* Tap to sync: the whole row is the button, so it reads as the row's text. */
+.sync__action--row {
+  color: var(--muted);
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+.sync__more {
+  margin-left: 0;
+}
+
+.sync__more .template__menu {
+  text-align: left;
+}
+
 .import {
   width: min(28rem, calc(100vw - 2rem));
   padding: 1rem;

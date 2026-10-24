@@ -11,6 +11,7 @@ const ASSETS = [
   "./templates.js",
   "./sharing.js",
   "./sync.js",
+  "./drive.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
