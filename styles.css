@@ -959,11 +959,6 @@ input:focus {
   box-shadow: inset 0 -3px 0 var(--accent);
 }
 
-.picker--keys .picker__part {
-  padding: 0;
-  pointer-events: none;
-}
-
 .picker__colon {
   color: var(--muted);
 }
@@ -972,8 +967,8 @@ input:focus {
   color: var(--raised);
 }
 
-.picker__next {
-  border-bottom: 3px solid var(--accent);
+.picker__old {
+  color: var(--muted);
 }
 
 .picker__quick {

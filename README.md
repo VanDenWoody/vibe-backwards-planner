@@ -96,13 +96,15 @@ The deadline has its own picker (`picker.js`) instead of the browser's
 value in the browser's locale. The deadline in the header is a button that opens
 one `<dialog>` in one of two layouts, chosen by `(pointer: coarse)`:
 
-- **Touch**: a bottom sheet with a keypad. The hours and the minutes are two
-  parts you can select; typing replaces only the selected part, and a part you
-  do not type keeps the deadline's old value, so the minutes can change without
-  retyping the hour. It opens empty with the hour selected.
-- **Desktop**: a popover under the deadline that reads up to four typed digits
-  (`1435`), with `T` / `M` / `O` for today, tomorrow and another day, `Enter`
-  to set and `Esc` to close.
+- **Touch**: a bottom sheet with a keypad.
+- **Desktop**: a popover under the deadline that you type into (`1435`), with
+  `Tab` to switch between the hours and the minutes, `T` / `M` / `O` for today,
+  tomorrow and another day, `Enter` to set and `Esc` to close.
+
+Both edit the time the same way. The hours and the minutes are two parts; the
+picker opens with the hours selected and shows the current deadline. Typing
+replaces only the selected part, and a part you do not type keeps its old
+value, so the minutes can change without retyping the hour.
 
 Both offer Today, Tomorrow and Other; Other shows a month calendar without past
 days. An hour without minutes is `:00`. Closing without Set changes nothing.

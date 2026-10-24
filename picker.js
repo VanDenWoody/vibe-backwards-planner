@@ -1,5 +1,5 @@
 // The deadline picker: a bottom sheet with a keypad on touch screens, a small
-// popover you type into on desktop. It replaces the browser's datetime-local
+// popover you type into on desktop. Both edit the time the same way. It replaces the browser's datetime-local
 // picker, which is slow to aim at an exact time on every platform.
 
 const PARTS = {
@@ -36,7 +36,7 @@ export function joinDeadline(date, hours, minutes) {
   return `${date}T${pad(hours)}:${pad(minutes)}`;
 }
 
-// The phone keypad edits the hours and the minutes as two parts. typed holds
+// The picker edits the hours and the minutes as two parts. typed holds
 // the digits of the selected part that are not a full value yet. A part that is
 // never typed keeps the deadline's old value, so the minutes can be changed
 // without retyping the hour.
@@ -97,27 +97,6 @@ export function entryTime(entry) {
   return { hours: settled.hours, minutes: settled.minutes ?? 0 };
 }
 
-// The desktop popover reads the time as one stream of up to four digits,
-// "1435", with the same rules for a digit that cannot start a value.
-export function typeStream(digits, digit) {
-  const start = digits.length >= 4 ? "" : digits;
-  const next = start + digit;
-  if (next.length === 1 && Number(digit) > PARTS.hours.first) return `0${digit}`;
-  if (next.length === 2 && Number(next) > PARTS.hours.max) return start;
-  if (next.length === 3 && Number(digit) > PARTS.minutes.first) return `${start}0${digit}`;
-  return next;
-}
-
-export function streamTime(digits, old) {
-  if (digits === "") return old ?? null;
-  if (digits.length <= 2) return { hours: Number(digits), minutes: 0 };
-  return { hours: Number(digits.slice(0, 2)), minutes: Number(digits.slice(2)) };
-}
-
-export function streamMinutes(digits, minutes) {
-  return digits.length < 2 ? digits : digits.slice(0, 2) + pad(minutes);
-}
-
 const chipFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" });
 const monthFmt = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
 const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
@@ -147,10 +126,8 @@ export function createDeadlinePicker(dialog, { onPick }) {
     const touch = window.matchMedia("(pointer: coarse)").matches;
     view = {
       touch,
-      old,
       date: parts?.date ?? today(),
       entry: startEntry(old),
-      digits: "",
       calendar: false,
       month: null,
     };
@@ -169,12 +146,8 @@ export function createDeadlinePicker(dialog, { onPick }) {
     dialog.style.left = `${Math.round(Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)))}px`;
   }
 
-  function time() {
-    return view.touch ? entryTime(view.entry) : streamTime(view.digits, view.old);
-  }
-
   function choose() {
-    const picked = time();
+    const picked = entryTime(view.entry);
     if (picked === null) return;
     const deadline = joinDeadline(view.date, picked.hours, picked.minutes);
     dialog.close();
@@ -209,41 +182,28 @@ export function createDeadlinePicker(dialog, { onPick }) {
     otherChipEl.textContent = !view.calendar && name === "" ? chipFmt.format(dateOf(view.date)) : "Other…";
   }
 
-  // The phone shows two parts you can select; the part not typed shows its old
-  // value, faint. The desktop shows the stream as v2 of the design did: typed
-  // digits over a faint 00:00, the next digit underlined.
+  // Two parts you can select. A part not typed yet shows the deadline's old
+  // value, or a faint 00 when there is none.
   function renderTime() {
-    if (view.touch) {
-      const { entry } = view;
-      for (const el of partEls) {
-        const part = el.dataset.part;
-        const selected = entry.part === part;
-        el.classList.toggle("picker__part--on", selected);
-        el.setAttribute("aria-pressed", String(selected));
-        el.tabIndex = 0;
-        if (selected && entry.typed !== "") {
-          el.innerHTML = `${entry.typed}<span class="picker__faint">_</span>`;
-        } else if (entry.touched[part]) {
-          el.textContent = pad(entry[part]);
-        } else {
-          el.innerHTML = `<span class="picker__faint">${entry[part] === null ? "00" : pad(entry[part])}</span>`;
-        }
-      }
-    } else {
-      const { digits } = view;
-      const digit = (i) =>
-        i < digits.length
-          ? digits[i]
-          : `<span class="picker__faint${i === digits.length ? " picker__next" : ""}">0</span>`;
-      partEls[0].innerHTML = digit(0) + digit(1);
-      partEls[1].innerHTML = digit(2) + digit(3);
-      for (const el of partEls) {
-        el.classList.remove("picker__part--on");
-        el.removeAttribute("aria-pressed");
-        el.tabIndex = -1;
+    const { entry } = view;
+    for (const el of partEls) {
+      const part = el.dataset.part;
+      const selected = entry.part === part;
+      el.classList.toggle("picker__part--on", selected);
+      el.setAttribute("aria-pressed", String(selected));
+      // On desktop Tab switches the parts, so they are not tab stops.
+      el.tabIndex = view.touch ? 0 : -1;
+      if (selected && entry.typed !== "") {
+        el.innerHTML = `${entry.typed}<span class="picker__faint">_</span>`;
+      } else if (entry.touched[part]) {
+        el.textContent = pad(entry[part]);
+      } else if (entry[part] === null) {
+        el.innerHTML = `<span class="picker__faint">00</span>`;
+      } else {
+        el.innerHTML = `<span class="picker__old">${pad(entry[part])}</span>`;
       }
     }
-    for (const el of setEls) el.disabled = time() === null;
+    for (const el of setEls) el.disabled = entryTime(entry) === null;
   }
 
   function renderCalendar() {
@@ -307,13 +267,11 @@ export function createDeadlinePicker(dialog, { onPick }) {
       const month = view.month;
       view.month = new Date(month.getFullYear(), month.getMonth() + Number(button.dataset.month), 1);
       renderCalendar();
-    } else if (button.dataset.part && view.touch) {
+    } else if (button.dataset.part) {
       view.entry = choosePart(view.entry, button.dataset.part);
       renderTime();
     } else if (button.dataset.minutes) {
-      const minutes = Number(button.dataset.minutes);
-      if (view.touch) view.entry = pickMinutes(view.entry, minutes);
-      else view.digits = streamMinutes(view.digits, minutes);
+      view.entry = pickMinutes(view.entry, Number(button.dataset.minutes));
       renderTime();
     } else if (button.dataset.key) {
       press(button.dataset.key);
@@ -324,14 +282,7 @@ export function createDeadlinePicker(dialog, { onPick }) {
 
   function press(key) {
     if (view.calendar) return;
-    if (key === "erase") {
-      if (view.touch) view.entry = eraseDigit(view.entry);
-      else view.digits = view.digits.slice(0, -1);
-    } else if (view.touch) {
-      view.entry = typeDigit(view.entry, key);
-    } else {
-      view.digits = typeStream(view.digits, key);
-    }
+    view.entry = key === "erase" ? eraseDigit(view.entry) : typeDigit(view.entry, key);
     renderTime();
   }
 
@@ -340,6 +291,12 @@ export function createDeadlinePicker(dialog, { onPick }) {
     const key = event.key.toLowerCase();
     if (/^\d$/.test(key)) press(key);
     else if (key === "backspace") press("erase");
+    // Tab and Shift+Tab switch between the hours and the minutes. The chips and
+    // Set have letter keys and Enter, so nothing is out of reach.
+    else if (key === "tab" && !view.calendar) {
+      view.entry = choosePart(view.entry, view.entry.part === "hours" ? "minutes" : "hours");
+      renderTime();
+    }
     else if (key === "t") chooseDay("today");
     else if (key === "m") chooseDay("tomorrow");
     else if (key === "o") chooseDay("other");

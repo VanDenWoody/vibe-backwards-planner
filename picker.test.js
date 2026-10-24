@@ -10,14 +10,10 @@ import {
   pickMinutes,
   splitDeadline,
   startEntry,
-  streamMinutes,
-  streamTime,
   typeDigit,
-  typeStream,
 } from "./picker.js";
 
 const typeAll = (entry, digits) => [...digits].reduce(typeDigit, entry);
-const streamAll = (digits) => [...digits].reduce(typeStream, "");
 
 test("splitDeadline reads a plan deadline into date, hours and minutes", () => {
   assert.deepEqual(splitDeadline("2026-10-24T08:15"), { date: "2026-10-24", hours: 8, minutes: 15 });
@@ -99,25 +95,9 @@ test("quick minutes change only the minutes", () => {
   });
 });
 
-test("the desktop stream fills the time digit by digit", () => {
-  assert.equal(streamAll("1435"), "1435");
-  assert.equal(streamAll("9"), "09");
-  assert.equal(streamAll("25"), "2");
-  assert.equal(streamAll("106"), "1006", "a minute digit above 5 stands alone");
-  assert.equal(streamAll("14351"), "1", "a fifth digit starts over");
-});
-
-test("the desktop stream reads short input the same way as the phone", () => {
-  assert.deepEqual(streamTime("1435", null), { hours: 14, minutes: 35 });
-  assert.deepEqual(streamTime("14", null), { hours: 14, minutes: 0 });
-  assert.deepEqual(streamTime("143", null), { hours: 14, minutes: 3 });
-  assert.deepEqual(streamTime("1", null), { hours: 1, minutes: 0 });
-  assert.equal(streamTime("", null), null);
-  assert.deepEqual(streamTime("", { hours: 8, minutes: 15 }), { hours: 8, minutes: 15 });
-});
-
-test("desktop quick minutes need the hour first", () => {
-  assert.equal(streamMinutes("1", 30), "1");
-  assert.equal(streamMinutes("14", 30), "1430");
-  assert.equal(streamMinutes("1435", 0), "1400");
+test("switching parts back and forth keeps what was typed in each", () => {
+  let entry = typeAll(startEntry({ hours: 8, minutes: 15 }), "4");
+  entry = choosePart(entry, "minutes");
+  entry = choosePart(typeAll(entry, "3"), "hours");
+  assert.deepEqual(entryTime(entry), { hours: 4, minutes: 3 });
 });
