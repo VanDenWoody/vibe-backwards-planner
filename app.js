@@ -40,13 +40,21 @@ import {
   loadGis,
   runSyncCycle,
 } from "./drive.js";
+import { createDeadlinePicker } from "./picker.js";
 
 const UNDO_MS = 6000;
 
 const deadlineLabelEl = document.querySelector("#deadline-label");
-const deadlineInputEl = document.querySelector("#deadline-input");
+const deadlineOpenEl = document.querySelector("#deadline-open");
 const deadlineTimeEl = document.querySelector("#deadline-time");
 const deadlineDateEl = document.querySelector("#deadline-date");
+const deadlinePicker = createDeadlinePicker(document.querySelector("#deadline-picker"), {
+  onPick(deadline) {
+    state.deadline = deadline;
+    savePlan(state);
+    renderTimes();
+  },
+});
 const hintEl = document.querySelector("#hint");
 const stepsEl = document.querySelector("#steps");
 const leaveEl = document.querySelector("#leave");
@@ -330,17 +338,18 @@ function renderTimes() {
   const hasDeadline = deadlineAt !== null;
   const hasSteps = state.steps.length > 0;
 
-  // The native picker prints its value in the browser's locale, which would
-  // put a 12-hour string at the head of a 24-hour column. So the time is drawn
-  // here from the same parsed value the schedule was built from.
+  // The time is drawn from the same parsed value the schedule was built from,
+  // in 24-hour form to head the 24-hour column.
   if (hasDeadline) {
     deadlineTimeEl.textContent = timeFmt.format(deadlineAt);
     deadlineTimeEl.classList.remove("deadline__time--unset");
     deadlineDateEl.textContent = isToday(deadlineAt) ? "Today" : dayFmt.format(deadlineAt);
+    deadlineOpenEl.setAttribute("aria-label", `Deadline ${describeDeadline(state.deadline)}. Change`);
   } else {
     deadlineTimeEl.textContent = "Set a time";
     deadlineTimeEl.classList.add("deadline__time--unset");
     deadlineDateEl.textContent = "";
+    deadlineOpenEl.setAttribute("aria-label", "Set the deadline");
   }
 
   if (!hasDeadline) {
@@ -622,25 +631,8 @@ function undoPending() {
   restore();
 }
 
-// A click reaches the invisible control and focuses it, but on desktop that
-// only selects a segment: the picker opens from the calendar icon, which is
-// invisible here. Since the drawn value cannot show a caret either, editing by
-// keyboard alone would be blind. Asking for the picker makes one click enough
-// on every platform; a tap that already opened it lands in the catch.
-deadlineInputEl.addEventListener("click", () => {
-  try {
-    deadlineInputEl.showPicker();
-  } catch {
-    // No showPicker, or it is open already. Focus and typing still work.
-  }
-});
-
-// change, not input: a half-typed date reads as an empty value, which would
-// blank the header and the leave time between keystrokes.
-deadlineInputEl.addEventListener("change", () => {
-  state.deadline = deadlineInputEl.value;
-  savePlan(state);
-  renderTimes();
+deadlineOpenEl.addEventListener("click", () => {
+  deadlinePicker.open(state.deadline, deadlineOpenEl);
 });
 
 deadlineLabelEl.addEventListener("input", () => {
@@ -821,7 +813,6 @@ clearAllEl.addEventListener("click", () => {
   Object.assign(state, emptyPlan());
   // Writing an input's value is banned during render, where it would eat the
   // caret. Here the user is not typing, so the fields have to be told.
-  deadlineInputEl.value = "";
   deadlineLabelEl.value = "";
   // The plan no longer came from a template, so Update has nothing to write
   // back to — leaving the pointer would aim it at an emptied plan.
@@ -831,7 +822,6 @@ clearAllEl.addEventListener("click", () => {
 
   beginPending("Cleared the plan", () => {
     Object.assign(state, previous);
-    deadlineInputEl.value = state.deadline;
     deadlineLabelEl.value = state.deadlineLabel;
     setActive(previousActive);
     savePlan(state);
@@ -940,7 +930,6 @@ async function loadTemplate(template) {
   state.deadlineLabel = template.deadlineLabel;
   // Writing an input's value is banned during render, where it would eat the
   // caret. Here the user is not typing, so the fields have to be told.
-  deadlineInputEl.value = state.deadline;
   deadlineLabelEl.value = state.deadlineLabel;
   setActive(template.id);
   savePlan(state);
@@ -951,7 +940,6 @@ async function loadTemplate(template) {
     state.steps = previousSteps;
     state.deadline = previousDeadline;
     state.deadlineLabel = previousLabel;
-    deadlineInputEl.value = previousDeadline;
     deadlineLabelEl.value = previousLabel;
     setActive(previousActive);
     savePlan(state);
@@ -1527,7 +1515,7 @@ function scheduleSync() {
 // snapshot and would delete what arrived, on every device), nor under a
 // half-typed name or an open dialog.
 function syncHeld() {
-  return pending !== null || naming !== null || importDialogEl.open;
+  return pending !== null || naming !== null || importDialogEl.open || deadlinePicker.isOpen();
 }
 
 function whenQuiet() {
@@ -1743,7 +1731,6 @@ function startSync() {
 
 window.addEventListener("hashchange", takeSharedLink);
 
-deadlineInputEl.value = state.deadline;
 deadlineLabelEl.value = state.deadlineLabel;
 render();
 startSync();
