@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What's new in Backwards Planner, 24 October</title>
+<meta name="description" content="Plan around other people, sync templates between your devices, and set times faster: what's new in Backwards Planner.">
+<meta name="theme-color" content="#0b1120">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Backwards Planner">
+<meta property="og:title" content="What's new in Backwards Planner">
+<meta property="og:description" content="Plan around other people, sync templates between your devices, and set times faster: what's new in Backwards Planner.">
+<meta property="og:url" content="https://vandenwoody.github.io/vibe-backwards-planner/whats-new/2026-10-24.html">
+<meta property="og:image" content="https://vandenwoody.github.io/vibe-backwards-planner/whats-new/2026-10-24.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Backwards Planner update of 24 October: a plan for picking someone up from the airport">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: one narrow reading column (phone first); each feature is text then a live-looking
+   mock of the app built from the app's own colour tokens. Desktop puts the two picker mocks side by side. */
+:root {
+  color-scheme: dark;
+  /* The app's own tokens (styles.css) */
+  --bg: #111827;
+  --surface: #1f2937;
+  --raised: #374151;
+  --text: #f9fafb;
+  --muted: #9ca3af;
+  --accent: #818cf8;
+  --theirs: #c4b5fd;
+  --field: rgba(255, 255, 255, 0.04);
+  --field-border: rgba(255, 255, 255, 0.1);
+  --radius: 10px;
+  /* Page-only tokens */
+  --ink: #0b1120;
+  --line: rgba(129, 140, 248, 0.22);
+  --accent-soft: rgba(129, 140, 248, 0.14);
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-app: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font: 18px/1.55 var(--font-body);
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding-block: 2.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+}
+
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* ---------- Hero ---------- */
+.hero { display: flex; flex-direction: column; gap: 1rem; }
+.eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1, h2 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+  margin: 0;
+  line-height: 1.1;
+}
+h1 { font-size: clamp(2.2rem, 9vw, 3.4rem); font-weight: 800; letter-spacing: -0.02em; }
+h1 em { font-style: normal; color: var(--accent); }
+.lede { margin: 0; font-size: 1.1rem; color: #d1d5db; max-width: 34em; }
+
+.jump {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none;
+}
+.jump a {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.jump a:hover { background: var(--accent-soft); }
+
+/* ---------- Feature ---------- */
+.feature { display: flex; flex-direction: column; gap: 1.1rem; scroll-margin-top: 1rem; }
+.feature__tag {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+}
+h2 { font-size: clamp(1.6rem, 6.5vw, 2.2rem); font-weight: 800; letter-spacing: -0.015em; }
+.feature p { margin: 0; max-width: 34em; }
+.feature ul.points { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; max-width: 34em; }
+.muted { color: var(--muted); }
+kbd {
+  font-family: var(--font-app);
+  font-size: 0.8em;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--field-border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+/* Stage: where a mock sits. A phone-width app column, centered. */
+.stage {
+  background: radial-gradient(120% 90% at 50% 0%, rgba(129, 140, 248, 0.10), transparent 70%), var(--bg);
+  border: 1px solid var(--field-border);
+  border-radius: 20px;
+  padding: 1.25rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.stage__label {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stage__label span:last-child { color: var(--accent); }
+
+.duo { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 760px) {
+  .duo { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+
+/* ---------- App mocks (mirroring styles.css) ---------- */
+.app {
+  width: 100%;
+  max-width: 22rem;
+  font: 16px/1.4 var(--font-app);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.m-deadline, .m-step {
+  display: grid;
+  grid-template-columns: 4.3rem 1fr auto;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  min-height: 46px;
+  padding-right: 0.75rem;
+}
+.m-deadline { padding-block: 0.6rem; margin-bottom: 0.25rem; }
+.m-deadline .t { padding-left: 0.75rem; font-size: 1.1rem; font-weight: 600; }
+.m-deadline .l { font-size: 1.05rem; font-weight: 600; }
+.m-deadline .d { grid-column: 1 / -1; padding-left: 0.75rem; color: var(--muted); font-size: 0.8rem; }
+.m-step .t { padding-left: 0.75rem; color: var(--muted); font-size: 0.92rem; }
+.m-step .n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-step .min { color: var(--text); white-space: nowrap; }
+.m-step .min small { color: var(--muted); font-size: 0.8rem; margin-left: 0.15rem; }
+.m-step--theirs {
+  background: rgba(167, 139, 250, 0.12);
+  outline: 1px dashed rgba(167, 139, 250, 0.55);
+  outline-offset: -1px;
+}
+.m-step--theirs .t, .m-step--theirs .min { color: var(--theirs); }
+.m-meet {
+  display: flex; justify-content: space-between;
+  margin: -0.15rem 0.75rem 0.3rem;
+  padding: 0.35rem 0 0;
+  border-top: 1px solid rgba(167, 139, 250, 0.45);
+  color: var(--theirs);
+  font-size: 0.92rem;
+}
+.m-leave {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding: 0.8rem 0.75rem;
+  border-top: 2px solid var(--accent);
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+.m-leave b { color: var(--accent); font-weight: 600; }
+.m-leave .tot { margin-left: auto; }
+
+.m-arrows { display: flex; gap: 0.15rem; }
+.m-arrows span {
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border-radius: 8px; color: var(--muted); background: rgba(255, 255, 255, 0.04);
+  font-size: 0.9rem;
+}
+.m-arrows span.off { opacity: 0.25; }
+.m-step.lifted { outline: 2px solid var(--accent); outline-offset: -2px; }
+.m-slot {
+  min-height: 40px; display: grid; place-items: center;
+  border: 1px dashed var(--accent); border-radius: var(--radius);
+  color: var(--accent); font-size: 0.9rem;
+}
+.m-actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; }
+.m-btn {
+  font: 0.9rem var(--font-app);
+  padding: 0.45rem 0.9rem; border-radius: 8px;
+  background: var(--field); border: 1px solid var(--field-border); color: var(--muted);
+}
+.m-btn--on { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+
+/* Templates tab */
+.m-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--field-border); margin-bottom: 0.5rem; }
+.m-tabs span { text-align: center; padding: 0.55rem; color: var(--muted); font-size: 0.95rem; }
+.m-tabs span.on { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px var(--accent); }
+.m-tpl {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 0.7rem 0.75rem; display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.5rem; align-items: center;
+}
+.m-tpl .nm { font-weight: 600; }
+.m-tpl .use { font-size: 0.72rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 0.4rem; margin-left: 0.35rem; vertical-align: 2px; }
+.m-tpl .sm { grid-column: 1; color: var(--muted); font-size: 0.82rem; }
+.m-tpl .acts { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 0.25rem; align-items: center; }
+.m-tpl .acts span { padding: 0.3rem 0.4rem; border-radius: 8px; font-size: 0.85rem; color: var(--muted); }
+.m-tpl .acts .load { color: var(--accent); }
+.m-tpl .acts .hi { color: var(--text); background: rgba(255,255,255,0.08); }
+.m-tpl .acts .dots { font-size: 1.1rem; line-height: 1; }
+.m-menu {
+  align-self: flex-end;
+  width: 11rem;
+  margin-top: -0.1rem;
+  background: var(--raised);
+  border-radius: 10px;
+  padding: 0.3rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column;
+}
+.m-menu span { padding: 0.45rem 0.6rem; border-radius: 6px; font-size: 0.9rem; }
+.m-menu span.hi { background: rgba(255, 255, 255, 0.08); }
+.m-transfer { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; }
+.m-sync {
+  margin-top: 0.6rem;
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--field-border); border-radius: var(--radius);
+  font-size: 0.9rem; color: var(--muted);
+}
+.m-sync .dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; flex: none; }
+.m-sync .more { margin-left: auto; color: var(--muted); font-size: 1.1rem; }
+.m-toast {
+  margin-top: 0.6rem;
+  display: flex; gap: 0.75rem; align-items: center;
+  background: var(--raised); border-radius: 10px; padding: 0.6rem 0.8rem; font-size: 0.9rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+.m-toast b { margin-left: auto; color: var(--accent); font-weight: 600; }
+
+/* Picker: phone bottom sheet */
+.phone {
+  width: 100%; max-width: 20rem;
+  border: 1px solid var(--field-border);
+  border-radius: 26px;
+  overflow: hidden;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+}
+.phone__app { padding: 0.75rem 0.75rem 1rem; opacity: 0.4; }
+.sheet {
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  padding: 0.75rem 0.8rem 1rem;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  font: 16px/1.3 var(--font-app);
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
+.chips span {
+  text-align: center; padding: 0.45rem 0; border-radius: 999px;
+  border: 1px solid var(--field-border); font-size: 0.9rem;
+}
+.chips span.on { background: var(--accent); color: var(--ink); border-color: var(--accent); font-weight: 600; }
+.dateline { text-align: center; color: var(--muted); font-size: 0.8rem; }
+.clock { display: flex; justify-content: center; align-items: center; gap: 0.15rem; font-size: 2.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.clock .part { padding: 0 0.15rem; border-radius: 8px; }
+.clock .part.sel { background: var(--accent-soft); box-shadow: inset 0 -3px var(--accent); }
+.clock .colon { color: var(--muted); }
+.quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; }
+.quick span { text-align: center; padding: 0.3rem 0; border: 1px solid var(--field-border); border-radius: 8px; font-size: 0.85rem; color: var(--muted); }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3rem; }
+.keys span { text-align: center; padding: 0.55rem 0; background: var(--raised); border-radius: 9px; font-size: 1.1rem; }
+.keys span.er { background: transparent; border: 1px solid var(--field-border); }
+.keys span.set { background: #4f46e5; font-weight: 700; }
+
+/* Picker: desktop popover anchored to the deadline */
+.desk {
+  width: 100%; max-width: 24rem;
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.desk__bar {
+  display: flex; gap: 0.35rem; padding: 0.5rem 0.7rem;
+  background: var(--surface); border-bottom: 1px solid var(--field-border);
+}
+.desk__bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--raised); }
+.desk__body { padding: 0.9rem; font: 16px/1.4 var(--font-app); position: relative; min-height: 21.5rem; }
+.desk__body .m-deadline { max-width: 100%; }
+.pop {
+  position: absolute; left: 0.9rem; top: 4.4rem;
+  width: 16.5rem;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  padding: 0.7rem 0.8rem 0.8rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.pop .clock { font-size: 2.1rem; }
+.pop .hint { font-size: 0.75rem; color: var(--muted); line-height: 1.6; }
+.pop .hint kbd { font-size: 0.72rem; padding: 0 0.3rem; }
+.pop .setbtn { align-self: flex-end; background: #4f46e5; padding: 0.35rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; }
+
+.flow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem;
+  font-size: 0.95rem; color: var(--muted);
+}
+.flow span { color: var(--text); background: var(--surface); border-radius: 8px; padding: 0.2rem 0.55rem; }
+.flow i { font-style: normal; color: var(--accent); }
+
+/* ---------- Small things ---------- */
+.smalls { display: flex; flex-direction: column; gap: 1rem; }
+.smalls ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.smalls li { padding: 0.9rem 0; border-bottom: 1px solid var(--line); display: grid; gap: 0.15rem; }
+.smalls li b { font-weight: 700; }
+.smalls li span { color: var(--muted); font-size: 0.95rem; }
+
+/* ---------- Footer ---------- */
+.cta {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 1.5rem 1.25rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.cta h2 { font-size: 1.6rem; }
+.cta p { margin: 0; color: #d1d5db; }
+.cta__btn {
+  align-self: flex-start;
+  display: inline-block;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.75rem 1.3rem;
+  border-radius: 12px;
+}
+.cta__btn:hover { background: #a5b4fc; }
+.cta__url { font-size: 0.85rem; color: var(--muted); word-break: break-all; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .jump a, .cta__btn { transition: background 0.15s; }
+}
+</style>
+
+</head>
+<body>
+<main class="page">
+
+  <header class="hero">
+    <span class="eyebrow">Backwards Planner &middot; Saturday 24 October 2026</span>
+    <h1>What&rsquo;s new in <em>Backwards Planner</em></h1>
+    <p class="lede">Backwards Planner works out when you have to leave. You set the deadline, add what has to happen before it, and it counts back. These are the changes of 24 October.</p>
+
+    <ul class="jump" aria-label="Jump to a feature">
+      <li><a href="#meet">Negative steps</a></li>
+      <li><a href="#sync">Sync</a></li>
+      <li><a href="#picker">Deadline picker</a></li>
+      <li><a href="#edit">Reorder &amp; insert</a></li>
+      <li><a href="#share">Share &amp; import</a></li>
+    </ul>
+  </header>
+
+  <!-- 1. Negative steps -->
+  <section class="feature" id="meet">
+    <span class="feature__tag">New</span>
+    <h2>Negative steps for someone else&rsquo;s time</h2>
+    <p>The plane lands at 11:00, but your friend still has to get off and through the passport queue. Enter those as <b>&minus;10</b> and <b>&minus;25</b>. Their steps run forward to a meet time, and your own steps count back from there.</p>
+    <div class="stage">
+      <div class="stage__label"><span>Planning tab</span><span>Phone &amp; desktop</span></div>
+      <div class="app" aria-label="Example plan with two of their steps and two of yours">
+        <div class="m-deadline"><span class="t">11:00</span><span class="l">Plane lands</span><span class="d">Today, Sat 24 Oct</span></div>
+        <div class="m-step m-step--theirs"><span class="t">11:00</span><span class="n">Deplane</span><span class="min">&minus;10<small>min</small></span></div>
+        <div class="m-step m-step--theirs"><span class="t">11:10</span><span class="n">Passport queue</span><span class="min">&minus;25<small>min</small></span></div>
+        <div class="m-meet"><span>Meet at</span><span>11:35</span></div>
+        <div class="m-step"><span class="t">11:25</span><span class="n">Park at P2</span><span class="min">10<small>min</small></span></div>
+        <div class="m-step"><span class="t">10:40</span><span class="n">Drive to the airport</span><span class="min">45<small>min</small></span></div>
+        <div class="m-leave"><span>Leave by</span><b>10:40</b><span class="tot">55 min</span></div>
+      </div>
+    </div>
+    <p class="muted">Their steps are dashed and purple and always stay on top, so you never confuse them with yours. The total under &ldquo;Leave by&rdquo; counts only your own time.</p>
+  </section>
+
+  <!-- 2. Sync -->
+  <section class="feature" id="sync">
+    <span class="feature__tag">New</span>
+    <h2>Template sync with Google Drive</h2>
+    <p>Save &ldquo;School run&rdquo; on your phone and it shows up on your laptop. Turn on sync at the bottom of the Templates tab and sign in with Google. Changes go across about three seconds after you make them.</p>
+    <div class="stage">
+      <div class="stage__label"><span>Templates tab</span><span>Phone &amp; desktop</span></div>
+      <div class="app">
+        <div class="m-tabs"><span>Planning</span><span class="on">Templates</span></div>
+        <div class="m-tpl"><span class="nm">School run<span class="use">In use</span></span><span class="sm">4 steps &middot; 35 min &middot; ends 08:30</span><span class="acts"><span class="load">Load</span><span>Update</span><span>Share</span><span class="dots">&#8943;</span></span></div>
+        <div class="m-tpl"><span class="nm">Airport pickup</span><span class="sm">4 steps &middot; 55 min &middot; ends 11:00</span><span class="acts"><span class="load">Load</span><span>Update</span><span>Share</span><span class="dots">&#8943;</span></span></div>
+        <div class="m-tpl"><span class="nm">Football practice</span><span class="sm">3 steps &middot; 40 min &middot; ends 18:45</span><span class="acts"><span class="load">Load</span><span>Update</span><span>Share</span><span class="dots">&#8943;</span></span></div>
+        <div class="m-sync"><span class="dot" aria-hidden="true"></span><span>Synced 14:32</span><span class="more">&#8943;</span></div>
+      </div>
+    </div>
+    <ul class="points">
+      <li>The app only sees its own hidden folder in your Google Drive, nothing else.</li>
+      <li>While sync is off, the app does not contact Google at all.</li>
+      <li>Two different templates with the same name? It asks which one to keep.</li>
+      <li>On iPhone, use it in a Safari tab. The home-screen app can&rsquo;t do the Google sign-in.</li>
+    </ul>
+  </section>
+
+  <!-- 3. Picker -->
+  <section class="feature" id="picker">
+    <span class="feature__tag">Redesigned</span>
+    <h2>New deadline picker</h2>
+    <p>Tap the time and a picker opens. Choose Today, Tomorrow or another day, then type the time: four digits and you&rsquo;re done. On a phone you get a keypad; on a computer you just type.</p>
+    <div class="duo">
+      <div class="stage">
+        <div class="stage__label"><span>Phone</span><span>Keypad sheet</span></div>
+        <div class="phone" aria-label="Phone: the picker slides up from the bottom with a number keypad">
+          <div class="phone__app" aria-hidden="true">
+            <div class="m-deadline" style="margin:0"><span class="t">08:15</span><span class="l">School starts</span></div>
+          </div>
+          <div class="sheet">
+            <div class="chips"><span class="on">Today</span><span>Tomorrow</span><span>Other&hellip;</span></div>
+            <div class="dateline">Today, Sat, Oct 24</div>
+            <div class="clock"><span class="part sel">08</span><span class="colon">:</span><span class="part">15</span></div>
+            <div class="quick"><span>:00</span><span>:15</span><span>:30</span><span>:45</span></div>
+            <div class="keys">
+              <span>1</span><span>2</span><span>3</span>
+              <span>4</span><span>5</span><span>6</span>
+              <span>7</span><span>8</span><span>9</span>
+              <span class="er">&#9003;</span><span>0</span><span class="set">Set</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="stage__label"><span>Desktop</span><span>Keyboard popover</span></div>
+        <div class="desk" aria-label="Desktop: a small popover under the time, operated with the keyboard">
+          <div class="desk__bar" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="desk__body">
+            <div class="m-deadline"><span class="t">14:35</span><span class="l">Dentist</span></div>
+            <div class="pop">
+              <div class="chips"><span class="on">Today</span><span>Tomorrow</span><span>Other&hellip;</span></div>
+              <div class="clock"><span class="part">14</span><span class="colon">:</span><span class="part sel">35</span></div>
+              <div class="hint">Type <kbd>1</kbd><kbd>4</kbd><kbd>3</kbd><kbd>5</kbd>. <kbd>T</kbd> today, <kbd>M</kbd> tomorrow, <kbd>O</kbd> other. <kbd>Enter</kbd> sets, <kbd>Esc</kbd> closes.</div>
+              <div class="setbtn">Set</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="points">
+      <li>Start with an empty plan and the picker opens by itself.</li>
+      <li>On a computer, <kbd>Enter</kbd> walks you through the whole plan without the mouse:</li>
+    </ul>
+    <div class="flow" aria-label="Enter moves from the time to the deadline name, to the step name, to the minutes, and adds the step">
+      <span>time</span><i>&rarr;</i><span>deadline name</span><i>&rarr;</i><span>step name</span><i>&rarr;</i><span>minutes</span><i>&rarr;</i><span>step added</span>
+    </div>
+  </section>
+
+  <!-- 4. Reorder & insert -->
+  <section class="feature" id="edit">
+    <span class="feature__tag">New</span>
+    <h2>Reorder and insert steps</h2>
+    <p>Two new buttons under the plan. <b>Reorder</b> swaps the minutes for arrows so you can move steps up and down. <b>Insert</b> opens a slot between every pair of steps, so you can add one in the middle instead of only at the end.</p>
+    <div class="duo">
+      <div class="stage">
+        <div class="stage__label"><span>Reorder</span><span>Phone &amp; desktop</span></div>
+        <div class="app">
+          <div class="m-step"><span class="t">08:05</span><span class="n">Bike to school</span><span class="m-arrows"><span class="off">&#9650;</span><span>&#9660;</span></span></div>
+          <div class="m-step lifted"><span class="t">07:55</span><span class="n">Pack lunch</span><span class="m-arrows"><span>&#9650;</span><span>&#9660;</span></span></div>
+          <div class="m-step"><span class="t">07:45</span><span class="n">Breakfast</span><span class="m-arrows"><span>&#9650;</span><span class="off">&#9660;</span></span></div>
+          <div class="m-actions"><span class="m-btn">Insert</span><span class="m-btn m-btn--on">Done</span><span class="m-btn">Clear plan</span></div>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="stage__label"><span>Insert</span><span>Phone &amp; desktop</span></div>
+        <div class="app">
+          <div class="m-step"><span class="t">08:05</span><span class="n">Bike to school</span><span class="min">10<small>min</small></span></div>
+          <div class="m-slot">+ Add step here</div>
+          <div class="m-step"><span class="t">07:55</span><span class="n">Pack lunch</span><span class="min">10<small>min</small></span></div>
+          <div class="m-slot">+ Add step here</div>
+          <div class="m-step"><span class="t">07:45</span><span class="n">Breakfast</span><span class="min">10<small>min</small></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Share -->
+  <section class="feature" id="share">
+    <span class="feature__tag">New</span>
+    <h2>Share, export and import templates</h2>
+    <p>Tap <b>Share</b> on a template. You get a link; whoever opens it is asked whether to add the template to their own list. To move everything at once, use <b>Export all</b> and <b>Import&hellip;</b> at the bottom of the Templates tab.</p>
+    <div class="stage">
+      <div class="stage__label"><span>Templates tab</span><span>Phone &amp; desktop</span></div>
+      <div class="app">
+        <div class="m-tpl"><span class="nm">Airport pickup</span><span class="sm">4 steps &middot; 55 min &middot; ends 11:00</span><span class="acts"><span class="load">Load</span><span>Update</span><span class="hi">Share</span><span class="dots">&#8943;</span></span></div>
+                <div class="m-transfer"><span class="m-btn">Export all</span><span class="m-btn">Import&hellip;</span></div>
+        <div class="m-toast"><span>Copied a link to &ldquo;Airport pickup&rdquo;</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Small things -->
+  <section class="smalls">
+    <span class="feature__tag">Also new today</span>
+    <ul>
+      <li><b>Templates remember the time</b><span>Loading &ldquo;School run&rdquo; sets 08:30 again. It only asks about the deadline when you reload the template you already have open.</span></li>
+      <li><b>Template names fill themselves in</b><span>Saving a plan suggests the plan&rsquo;s name, so &ldquo;Dentist&rdquo; stays &ldquo;Dentist&rdquo;.</span></li>
+      <li><b>The installed app updates itself</b><span>If you added it to your home screen, it now picks up new versions on its own.</span></li>
+    </ul>
+  </section>
+
+  <section class="cta">
+    <h2>Try it</h2>
+    <p>Free, no account, works offline. On Android, open it in Chrome and choose <b>Add to Home screen</b>.</p>
+    <a class="cta__btn" href="https://vandenwoody.github.io/vibe-backwards-planner/" target="_blank" rel="noopener">Open Backwards Planner</a>
+    <span class="cta__url">vandenwoody.github.io/vibe-backwards-planner</span>
+  </section>
+
+</main>
+</body>
+</html>

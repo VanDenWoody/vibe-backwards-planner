@@ -15,6 +15,15 @@ home screen and it works offline.
 
 On Android, open that URL in Chrome and choose **Add to Home screen**.
 
+## What's new
+
+[![What's new in Backwards Planner, 24 October 2026](whats-new/2026-10-24.png)](https://vandenwoody.github.io/vibe-backwards-planner/whats-new/2026-10-24.html)
+
+**24 October 2026:** [read the release notes](https://vandenwoody.github.io/vibe-backwards-planner/whats-new/2026-10-24.html).
+Release notes live in `whats-new/`, one page and one 1200×630 preview image
+per release. The service worker leaves that folder to the network, so a shared
+link opens the notes, not the app.
+
 ## Run locally
 
     python -m http.server 8000
