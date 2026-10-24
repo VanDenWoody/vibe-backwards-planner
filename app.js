@@ -888,15 +888,17 @@ function applySyncedLibrary(next) {
 }
 
 // The deadline a load gives the plan: the next time the template's clock time
-// comes round. A deadline the plan already has is the user's to give up, so
-// then the dialog asks. A template without a time leaves the deadline alone.
-// null means the user cancelled the load.
+// comes round. Only reloading the template already in use asks first, when the
+// plan has another deadline: that one is likely a date the user moved it to.
+// Switching to a different template just sets its time; Undo brings the old
+// deadline back. A template without a time leaves the deadline alone. null
+// means the user cancelled the load.
 async function deadlineForLoad(template) {
   const time = template.deadlineTime;
   if (time === "") return state.deadline;
 
   const next = nextOccurrence(time, new Date());
-  if (state.deadline === "" || state.deadline === next) return next;
+  if (template.id !== activeId || state.deadline === "" || state.deadline === next) return next;
 
   const current = state.deadline;
   const sameDay = onSameDay(current, time);
