@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PLAN_VERSION, emptyPlan, coerceMinutes, createStep, moveStep, normalizePlan } from "./plan.js";
+import { PLAN_VERSION, emptyPlan, coerceMinutes, createStep, insertStep, moveStep, normalizePlan } from "./plan.js";
 
 test("emptyPlan has the current version and no content", () => {
   assert.deepEqual(emptyPlan(), { version: PLAN_VERSION, deadline: "", deadlineLabel: "", steps: [] });
@@ -81,6 +81,32 @@ test("normalizePlan discards anything malformed", () => {
   for (const raw of rejects) {
     assert.deepEqual(normalizePlan(raw), emptyPlan(), `should reject: ${JSON.stringify(raw)}`);
   }
+});
+
+test("insertStep puts the step at the index", () => {
+  const steps = ["a", "b"].map((id) => ({ id, label: id, minutes: 1 }));
+  const step = { id: "n", label: "n", minutes: 1 };
+  assert.deepEqual(insertStep(steps, 0, step).map((s) => s.id), ["n", "a", "b"]);
+  assert.deepEqual(insertStep(steps, 1, step).map((s) => s.id), ["a", "n", "b"]);
+  assert.deepEqual(insertStep(steps, 2, step).map((s) => s.id), ["a", "b", "n"]);
+});
+
+test("insertStep clamps an index past either end", () => {
+  const steps = ["a", "b"].map((id) => ({ id, label: id, minutes: 1 }));
+  const step = { id: "n", label: "n", minutes: 1 };
+  assert.deepEqual(insertStep(steps, -3, step).map((s) => s.id), ["n", "a", "b"]);
+  assert.deepEqual(insertStep(steps, 9, step).map((s) => s.id), ["a", "b", "n"]);
+  assert.deepEqual(insertStep([], 0, step).map((s) => s.id), ["n"]);
+});
+
+test("insertStep returns a new array and keeps the step objects", () => {
+  const steps = ["a", "b"].map((id) => ({ id, label: id, minutes: 1 }));
+  const step = { id: "n", label: "n", minutes: 1 };
+  const inserted = insertStep(steps, 1, step);
+  assert.notEqual(inserted, steps);
+  assert.deepEqual(steps.map((s) => s.id), ["a", "b"]);
+  assert.equal(inserted[0], steps[0]);
+  assert.equal(inserted[1], step);
 });
 
 test("moveStep swaps a step with its neighbour", () => {

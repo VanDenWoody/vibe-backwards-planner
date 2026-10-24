@@ -1,5 +1,5 @@
 import { computeSchedule } from "./schedule.js";
-import { coerceMinutes, createStep, emptyPlan, moveStep } from "./plan.js";
+import { coerceMinutes, createStep, emptyPlan, insertStep, moveStep } from "./plan.js";
 import {
   createTemplate,
   findTemplate,
@@ -43,6 +43,7 @@ const newLabelEl = document.querySelector("#new-label");
 const newMinutesEl = document.querySelector("#new-minutes");
 const clearAllEl = document.querySelector("#clear-all");
 const reorderEl = document.querySelector("#reorder");
+const insertEl = document.querySelector("#insert");
 const undoEl = document.querySelector("#undo");
 const undoMessageEl = document.querySelector("#undo-message");
 const undoActionEl = document.querySelector("#undo-action");
@@ -94,6 +95,12 @@ let naming = null;
 // passing mode, not a setting: leaving the tab or reloading ends it.
 let reordering = false;
 
+// Insert mode puts an "Add step here" slot in every gap of the list. insertAt
+// is the gap whose slot is open as a form: the index the new step will take,
+// or null while every slot is still a button. Never on together with reorder.
+let inserting = false;
+let insertAt = null;
+
 // A destructive action applies immediately and parks an undo here for UNDO_MS.
 // The parked value is a closure that puts the previous state back — including
 // persisting and re-rendering, since what needs saving differs between a step
@@ -126,6 +133,8 @@ function renderStructure() {
   stepsEl.replaceChildren();
 
   for (const [index, step] of state.steps.entries()) {
+    if (inserting) stepsEl.append(insertSlot(index));
+
     const li = document.createElement("li");
     li.className = "step";
     li.dataset.id = step.id;
@@ -172,6 +181,70 @@ function renderStructure() {
     nameMoveButtons(li, step.label);
     stepsEl.append(li);
   }
+
+  if (inserting) stepsEl.append(insertSlot(state.steps.length));
+}
+
+// The slot above the step at index, or below the last one when index is the
+// length. The list runs back from the deadline, so the step below a gap is the
+// one the new step comes after.
+function insertSlot(index) {
+  const li = document.createElement("li");
+  li.className = "insert-slot";
+  li.dataset.index = String(index);
+
+  if (index !== insertAt) {
+    const button = document.createElement("button");
+    button.className = "insert-slot__open";
+    button.type = "button";
+    button.textContent = "+ Add step here";
+    button.setAttribute("aria-label", slotName(index));
+    li.append(button);
+    return li;
+  }
+
+  const form = document.createElement("form");
+  form.className = "add-step insert-slot__form";
+
+  const label = document.createElement("input");
+  label.className = "add-step__label insert-slot__label";
+  label.type = "text";
+  label.placeholder = "Step name";
+  label.autocomplete = "off";
+  label.required = true;
+  label.setAttribute("aria-label", "Step name");
+
+  const minutes = document.createElement("input");
+  minutes.className = "add-step__minutes insert-slot__minutes";
+  minutes.type = "number";
+  minutes.min = "0";
+  minutes.step = "1";
+  minutes.inputMode = "numeric";
+  minutes.placeholder = "min";
+  minutes.setAttribute("aria-label", "Minutes");
+
+  const submit = document.createElement("button");
+  submit.className = "add-step__submit";
+  submit.type = "submit";
+  submit.textContent = "Add";
+
+  form.append(label, minutes, submit);
+  li.append(form);
+  return li;
+}
+
+// A rename changes what the neighbouring slots announce, without a rebuild
+// that would take the caret out of the name being typed.
+function renameSlots() {
+  for (const button of stepsEl.querySelectorAll(".insert-slot__open")) {
+    button.setAttribute("aria-label", slotName(Number(button.closest(".insert-slot").dataset.index)));
+  }
+}
+
+function slotName(index) {
+  const quoted = (step) => (step.label.trim() === "" ? "an unnamed step" : `“${step.label.trim()}”`);
+  if (index < state.steps.length) return `Add a step after ${quoted(state.steps[index])}`;
+  return `Add a step before ${quoted(state.steps[index - 1])}`;
 }
 
 function moveButton(direction, text) {
@@ -192,19 +265,32 @@ function nameMoveButtons(li, label) {
   }
 }
 
-function renderReorder() {
+function renderModes() {
   // Fewer than two steps leaves nothing to reorder, so the mode ends itself.
   if (state.steps.length < 2) reordering = false;
-  reorderEl.hidden = state.steps.length < 2;
+  reorderEl.hidden = state.steps.length < 2 || inserting;
   reorderEl.textContent = reordering ? "Done" : "Reorder";
   stepsEl.classList.toggle("steps--reordering", reordering);
-  addStepEl.hidden = reordering;
+  // With no steps the add form already sits in the only gap there is.
+  insertEl.hidden = state.steps.length === 0 || reordering;
+  insertEl.textContent = inserting ? "Done" : "Insert";
+  stepsEl.classList.toggle("steps--inserting", inserting);
+  addStepEl.hidden = reordering || inserting;
   renderClearButton();
 }
 
 function setReordering(next) {
   reordering = next;
-  renderReorder();
+  renderModes();
+}
+
+function setInserting(next) {
+  // Done keeps a step whose name was typed but not yet added, rather than
+  // dropping it without a word.
+  if (!next && insertAt !== null) addFromSlot({ keepOpen: false });
+  inserting = next && state.steps.length > 0;
+  insertAt = null;
+  render();
 }
 
 function renderTimes() {
@@ -234,7 +320,7 @@ function renderTimes() {
 
   const byId = new Map(rows.map((row) => [row.id, row]));
 
-  for (const li of stepsEl.children) {
+  for (const li of stepRows()) {
     const row = byId.get(li.dataset.id);
     li.querySelector(".step__time").textContent =
       row && hasDeadline ? formatAt(row.startsAt, row.dayOffset !== 0) : "";
@@ -416,12 +502,15 @@ function selectTab(tab, { focus = true } = {}) {
   // out of sight.
   if (tab !== templatesTabEl && naming !== null) setNaming(null);
   if (tab !== planningTabEl && reordering) setReordering(false);
+  if (tab !== planningTabEl && inserting) setInserting(false);
 }
 
 function render() {
+  if (state.steps.length === 0) inserting = false;
+  if (!inserting) insertAt = null;
   renderStructure();
   renderTimes();
-  renderReorder();
+  renderModes();
   renderTemplates();
 }
 
@@ -430,11 +519,16 @@ function planIsEmpty() {
 }
 
 function renderClearButton() {
-  clearAllEl.hidden = planIsEmpty() || reordering;
+  clearAllEl.hidden = planIsEmpty() || reordering || inserting;
+}
+
+// In insert mode the list also holds slots, so rows are picked out by class.
+function stepRows() {
+  return stepsEl.querySelectorAll("li.step");
 }
 
 function focusDeleteAt(index) {
-  const rows = stepsEl.children;
+  const rows = stepRows();
   if (rows.length === 0) return;
   rows[Math.min(index, rows.length - 1)].querySelector(".step__delete").focus();
 }
@@ -506,6 +600,11 @@ deadlineLabelEl.addEventListener("input", () => {
 });
 
 stepsEl.addEventListener("input", (event) => {
+  if (event.target.classList.contains("insert-slot__label")) {
+    event.target.setCustomValidity("");
+    return;
+  }
+
   const li = event.target.closest("li.step");
   if (li === null) return;
 
@@ -514,6 +613,7 @@ stepsEl.addEventListener("input", (event) => {
 
   if (event.target.classList.contains("step__label")) {
     step.label = event.target.value;
+    renameSlots();
     nameMoveButtons(li, step.label);
   } else if (event.target.classList.contains("step__minutes")) {
     step.minutes = coerceMinutes(event.target.value);
@@ -526,6 +626,12 @@ stepsEl.addEventListener("input", (event) => {
 });
 
 stepsEl.addEventListener("click", (event) => {
+  const open = event.target.closest("button.insert-slot__open");
+  if (open !== null) {
+    openSlot(Number(open.closest(".insert-slot").dataset.index));
+    return;
+  }
+
   const move = event.target.closest("button.step__move");
   if (move !== null) {
     moveStepFrom(move);
@@ -566,12 +672,64 @@ function moveStepFrom(button) {
 
   // Rebuilding the rows dropped focus. It follows the step, on the same arrow
   // so repeated presses keep moving it, or the other one once it hits an end.
-  const row = stepsEl.children[Math.max(0, Math.min(target, stepsEl.children.length - 1))];
+  const rows = stepRows();
+  const row = rows[Math.max(0, Math.min(target, rows.length - 1))];
   const same = row.querySelector(`.step__move--${direction}`);
   (same.disabled ? row.querySelector(".step__move:not(:disabled)") : same).focus();
 }
 
 reorderEl.addEventListener("click", () => setReordering(!reordering));
+
+insertEl.addEventListener("click", () => setInserting(!inserting));
+
+function openSlot(index) {
+  insertAt = index;
+  renderStructure();
+  renderTimes();
+  stepsEl.querySelector(".insert-slot__label").focus();
+}
+
+// Adds what the open slot holds. The form then reopens just below the new
+// step, so a run of additions reads like the bottom form's "Step before that".
+// Returns false, and says why, when there is no name to add.
+function addFromSlot({ keepOpen }) {
+  const form = stepsEl.querySelector(".insert-slot__form");
+  if (form === null) return false;
+  const labelEl = form.querySelector(".insert-slot__label");
+  const label = labelEl.value.trim();
+  if (label === "") {
+    if (keepOpen) {
+      labelEl.setCustomValidity("Give the step a name.");
+      labelEl.reportValidity();
+    }
+    return false;
+  }
+
+  const index = insertAt;
+  state.steps = insertStep(state.steps, index, createStep(label, form.querySelector(".insert-slot__minutes").value));
+  savePlan(state);
+  if (!keepOpen) return true;
+
+  insertAt = index + 1;
+  render();
+  stepsEl.querySelector(".insert-slot__label").focus();
+  return true;
+}
+
+stepsEl.addEventListener("submit", (event) => {
+  if (!event.target.classList.contains("insert-slot__form")) return;
+  event.preventDefault();
+  addFromSlot({ keepOpen: true });
+});
+
+stepsEl.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || event.target.closest(".insert-slot__form") === null) return;
+  const index = insertAt;
+  insertAt = null;
+  renderStructure();
+  renderTimes();
+  stepsEl.querySelector(`.insert-slot[data-index="${index}"] .insert-slot__open`).focus();
+});
 
 clearAllEl.addEventListener("click", () => {
   if (planIsEmpty()) return;
