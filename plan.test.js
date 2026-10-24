@@ -1,6 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PLAN_VERSION, emptyPlan, coerceMinutes, createStep, insertStep, moveStep, normalizePlan } from "./plan.js";
+import {
+  PLAN_VERSION,
+  emptyPlan,
+  coerceMinutes,
+  createStep,
+  insertStep,
+  moveStep,
+  normalizePlan,
+  orderSteps,
+} from "./plan.js";
 
 test("emptyPlan has the current version and no content", () => {
   assert.deepEqual(emptyPlan(), { version: PLAN_VERSION, deadline: "", deadlineLabel: "", steps: [] });
@@ -12,14 +21,16 @@ test("emptyPlan returns a fresh object each time", () => {
   assert.deepEqual(emptyPlan().steps, []);
 });
 
-test("coerceMinutes normalises anything to a non-negative number", () => {
+test("coerceMinutes normalises anything to a whole number of minutes", () => {
   assert.equal(coerceMinutes("30"), 30);
   assert.equal(coerceMinutes(45), 45);
   assert.equal(coerceMinutes("0"), 0);
   assert.equal(coerceMinutes(""), 0);
   assert.equal(coerceMinutes("abc"), 0);
-  assert.equal(coerceMinutes("-30"), 0);
-  assert.equal(coerceMinutes(-30), 0);
+  assert.equal(coerceMinutes("-30"), -30);
+  assert.equal(coerceMinutes(-30), -30);
+  assert.equal(coerceMinutes("-"), 0);
+  assert.ok(Object.is(coerceMinutes("-0"), 0), "-0 becomes a plain 0");
   assert.equal(coerceMinutes(null), 0);
   assert.equal(coerceMinutes(undefined), 0);
   assert.equal(coerceMinutes(NaN), 0);
@@ -76,7 +87,7 @@ test("normalizePlan discards anything malformed", () => {
     { version: 1, deadline: "", steps: [{ id: "", label: "x", minutes: 1 }] },
     { version: 1, deadline: "", steps: [{ id: "a", label: 5, minutes: 1 }] },
     { version: 1, deadline: "", steps: [{ id: "a", label: "x", minutes: "30" }] },
-    { version: 1, deadline: "", steps: [{ id: "a", label: "x", minutes: -1 }] },
+    { version: 1, deadline: "", steps: [{ id: "a", label: "x", minutes: Infinity }] },
   ];
   for (const raw of rejects) {
     assert.deepEqual(normalizePlan(raw), emptyPlan(), `should reject: ${JSON.stringify(raw)}`);
@@ -128,4 +139,36 @@ test("moveStep returns a new array and keeps the step objects", () => {
   assert.notEqual(moved, steps);
   assert.deepEqual(steps.map((s) => s.id), ["a", "b"]);
   assert.equal(moved[1], steps[0]);
+});
+
+test("normalizePlan keeps negative steps and puts them on top", () => {
+  const result = normalizePlan({
+    version: 1,
+    deadline: "",
+    steps: [
+      { id: "a", label: "Drive", minutes: 45 },
+      { id: "b", label: "Deplane", minutes: -10 },
+    ],
+  });
+  assert.deepEqual(result.steps.map((s) => s.id), ["b", "a"]);
+});
+
+test("orderSteps moves negative steps above the rest, keeping each group's order", () => {
+  const steps = [
+    { id: "a", minutes: 45 },
+    { id: "b", minutes: -10 },
+    { id: "c", minutes: 0 },
+    { id: "d", minutes: -25 },
+  ];
+  assert.deepEqual(orderSteps(steps).map((s) => s.id), ["b", "d", "a", "c"]);
+  assert.deepEqual(steps.map((s) => s.id), ["a", "b", "c", "d"], "input untouched");
+});
+
+test("moveStep does not move a step across the meet line", () => {
+  const steps = [
+    { id: "a", minutes: -10 },
+    { id: "b", minutes: 45 },
+  ];
+  assert.deepEqual(moveStep(steps, 0, 1).map((s) => s.id), ["a", "b"]);
+  assert.deepEqual(moveStep(steps, 1, -1).map((s) => s.id), ["a", "b"]);
 });

@@ -7,6 +7,7 @@
   --muted: #9ca3af;
   --accent: #818cf8;
   --danger: #f87171;
+  --theirs: #c4b5fd;
   --field: rgba(255, 255, 255, 0.04);
   --field-border: rgba(255, 255, 255, 0.1);
   --field-border-hover: rgba(255, 255, 255, 0.26);
@@ -530,6 +531,42 @@ input:focus {
 
 .step--zero {
   opacity: 0.45;
+}
+
+/* A negative step: the other person's time, running forward from the
+   deadline. Dashed and tinted so it never reads as one of your own. */
+.step--theirs {
+  background: rgba(167, 139, 250, 0.12);
+  outline: 1px dashed rgba(167, 139, 250, 0.55);
+  outline-offset: -1px;
+}
+
+.step--theirs .step__time,
+.step--theirs .step__minutes {
+  color: var(--theirs);
+}
+
+.step__from {
+  display: block;
+  font-size: 0.75rem;
+}
+
+.step__meet {
+  display: none;
+}
+
+/* The last negative step closes their run with the meet line, under the row
+   and across its full width. */
+.step--meet .step__meet {
+  display: flex;
+  justify-content: space-between;
+  grid-column: 1 / -1;
+  margin: 0 var(--gutter) 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(167, 139, 250, 0.45);
+  color: var(--theirs);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .step__time {

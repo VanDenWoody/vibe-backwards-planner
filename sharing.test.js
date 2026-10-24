@@ -32,6 +32,14 @@ test("decodeTemplate reverses encodeTemplate, without the id", () => {
   });
 });
 
+test("a shared template keeps its negative steps", () => {
+  const pickup = { id: "t9", name: "Pickup", deadlineLabel: "Lands", steps: [
+    { label: "Passport queue", minutes: -25 },
+    { label: "Drive", minutes: 45 },
+  ] };
+  assert.deepEqual(decodeTemplate(encodeTemplate(pickup)).steps, pickup.steps);
+});
+
 test("encodeTemplate survives text outside ASCII", () => {
   const template = createTemplate("Vakantie ✈️ — café", "Vertrek", [
     { id: "s1", label: "Koffers in de auto 🧳", minutes: 10 },
@@ -50,7 +58,7 @@ test("decodeTemplate refuses garbage instead of throwing", () => {
 });
 
 test("decodeTemplate refuses a template with a malformed step", () => {
-  const bad = Buffer.from(JSON.stringify({ v: 1, n: "X", d: "", s: [["Drive", -5]] })).toString(
+  const bad = Buffer.from(JSON.stringify({ v: 1, n: "X", d: "", s: [["Drive", "5"]] })).toString(
     "base64url"
   );
   assert.equal(decodeTemplate(bad), null);

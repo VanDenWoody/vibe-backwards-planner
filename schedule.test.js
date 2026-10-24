@@ -64,18 +64,17 @@ test("a plan crossing midnight lands on the previous day", () => {
   assert.equal(result.leaveDayOffset, -1);
 });
 
-test("zero, blank, non-numeric and negative minutes all count as zero", () => {
+test("zero, blank, non-numeric and missing minutes all count as zero", () => {
   const result = computeSchedule({
     deadline: "2026-09-12T15:00",
     steps: [
       step("a", "Zero", 0),
       step("b", "Blank", ""),
       step("c", "Garbage", "abc"),
-      step("d", "Negative", -30),
       step("e", "Missing", undefined),
     ],
   });
-  assert.deepEqual(result.rows.map((r) => r.minutes), [0, 0, 0, 0, 0]);
+  assert.deepEqual(result.rows.map((r) => r.minutes), [0, 0, 0, 0]);
   assert.equal(local(result.leaveAt), "2026-09-12T15:00");
 });
 
@@ -119,7 +118,7 @@ test("totalMinutes sums the coerced step durations", () => {
 test("totalMinutes counts anything uncountable as zero", () => {
   const result = computeSchedule({
     deadline: "2026-09-12T15:00",
-    steps: [step("a", "Real", 20), step("b", "Blank", ""), step("c", "Negative", -30)],
+    steps: [step("a", "Real", 20), step("b", "Blank", ""), step("c", "Garbage", "abc")],
   });
   assert.equal(result.totalMinutes, 20);
 });
@@ -151,4 +150,58 @@ test("deadlineAt is null when the deadline is unset or unparseable", () => {
     const result = computeSchedule({ deadline, steps: [] });
     assert.equal(result.deadlineAt, null, `deadline: ${String(deadline)}`);
   }
+});
+
+test("a negative step runs forward from the deadline and moves the meet time", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T11:00",
+    steps: [
+      step("a", "Deplane", -10),
+      step("b", "Passport queue", -25),
+      step("c", "Drive to airport", 45),
+    ],
+  });
+  assert.deepEqual(result.rows.map((r) => r.minutes), [-10, -25, 45]);
+  assert.deepEqual(result.rows.map((r) => local(r.startsAt)), [
+    "2026-09-12T11:00",
+    "2026-09-12T11:10",
+    "2026-09-12T10:50",
+  ]);
+  assert.deepEqual(result.rows.map((r) => local(r.endsAt)), [
+    "2026-09-12T11:10",
+    "2026-09-12T11:35",
+    "2026-09-12T11:35",
+  ]);
+  assert.equal(local(result.meetAt), "2026-09-12T11:35");
+  assert.equal(local(result.leaveAt), "2026-09-12T10:50");
+});
+
+test("meetAt is null when no step is negative", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T11:00",
+    steps: [step("a", "Drive", 45)],
+  });
+  assert.equal(result.meetAt, null);
+});
+
+test("totalMinutes counts only your own steps, from leave time to meet time", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T11:00",
+    steps: [step("a", "Passport queue", -25), step("b", "Drive", 45), step("c", "Shoes", 10)],
+  });
+  assert.equal(result.totalMinutes, 55);
+  assert.equal((result.meetAt.getTime() - result.leaveAt.getTime()) / 60000, 55);
+});
+
+test("leave time may fall after the deadline when their steps outweigh yours", () => {
+  const result = computeSchedule({
+    deadline: "2026-09-12T23:50",
+    steps: [step("a", "Baggage claim", -40), step("b", "Walk over", 5)],
+  });
+  assert.equal(local(result.meetAt), "2026-09-13T00:30");
+  assert.equal(result.meetDayOffset, 1);
+  assert.equal(local(result.leaveAt), "2026-09-13T00:25");
+  assert.equal(result.leaveDayOffset, 1);
+  // A negative row shows when it ends, so its day is the end's day.
+  assert.equal(result.rows[0].dayOffset, 1);
 });

@@ -3,6 +3,11 @@
 Set a deadline. Append the steps that have to happen before it. Read off when to
 leave. Save a routine you repeat as a template.
 
+Meeting someone? Give their steps negative minutes. A plane lands at 11:00,
+"Deplane −10" and "Passport queue −25" run forward to a meet time of 11:35, and
+your own steps count back from there. Negative steps stay at the top of the
+list, tinted, with the meet time under the last one.
+
 A single-page PWA with no build step and no dependencies. Install it to an Android
 home screen and it works offline.
 
