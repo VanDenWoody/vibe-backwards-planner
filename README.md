@@ -91,16 +91,21 @@ runs only when a step is added or deleted, while `renderTimes()` refreshes
 computed text and never writes to an input's `value`. Editing a duration
 therefore recomputes the whole schedule without destroying the caret.
 
-The deadline time is drawn by the app rather than by its picker. A
-`datetime-local` control prints its value in the browser's locale, which would
-put a 12-hour string at the head of a 24-hour column, so the real control sits
-over the drawn time at zero opacity, so the row still opens the native picker
-while the column stays canonical. Being invisible, the control has no visible
-calendar icon and can show no caret, which on desktop would leave a click
-selecting a segment you cannot see, so the click handler asks for the picker
-explicitly. That control listens for `change` rather than `input`, because a
-half-typed date reads as an empty value and would blank the header between
-keystrokes.
+The deadline has its own picker (`picker.js`) instead of the browser's
+`datetime-local` control, which is slow to aim at an exact time and prints its
+value in the browser's locale. The deadline in the header is a button that opens
+one `<dialog>` in one of two layouts, chosen by `(pointer: coarse)`:
+
+- **Touch**: a bottom sheet with a keypad. The hours and the minutes are two
+  parts you can select; typing replaces only the selected part, and a part you
+  do not type keeps the deadline's old value, so the minutes can change without
+  retyping the hour. It opens empty with the hour selected.
+- **Desktop**: a popover under the deadline that reads up to four typed digits
+  (`1435`), with `T` / `M` / `O` for today, tomorrow and another day, `Enter`
+  to set and `Esc` to close.
+
+Both offer Today, Tomorrow and Other; Other shows a month calendar without past
+days. An hour without minutes is `:00`. Closing without Set changes nothing.
 
 Deleting applies immediately and parks the removed step in memory for six
 seconds, so Undo can splice it back at the index it came from. Clearing every

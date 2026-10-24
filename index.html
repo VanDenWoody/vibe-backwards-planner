@@ -42,15 +42,9 @@
         tabindex="0"
       >
         <header class="deadline">
-          <span class="deadline__when">
-            <span id="deadline-time" class="deadline__time" aria-hidden="true"></span>
-            <input
-              id="deadline-input"
-              class="deadline__input"
-              type="datetime-local"
-              aria-label="Deadline date and time"
-            />
-          </span>
+          <button id="deadline-open" class="deadline__when" type="button" aria-haspopup="dialog">
+            <span id="deadline-time" class="deadline__time"></span>
+          </button>
           <input
             id="deadline-label"
             class="deadline__label"
@@ -150,6 +144,60 @@
         </label>
         <div id="import-buttons" class="import__buttons"></div>
       </form>
+    </dialog>
+
+    <dialog id="deadline-picker" class="picker" aria-label="Deadline date and time">
+      <div class="picker__body">
+        <div class="picker__chips" role="group" aria-label="Day">
+          <button class="picker__chip" type="button" data-day="today">Today</button>
+          <button class="picker__chip" type="button" data-day="tomorrow">Tomorrow</button>
+          <button class="picker__chip" type="button" data-day="other">Other…</button>
+        </div>
+        <p class="picker__dateline" aria-live="polite"></p>
+
+        <div class="picker__clock">
+          <div class="picker__time">
+            <button class="picker__part" type="button" data-part="hours" aria-label="Hours"></button>
+            <span class="picker__colon" aria-hidden="true">:</span>
+            <button class="picker__part" type="button" data-part="minutes" aria-label="Minutes"></button>
+          </div>
+          <div class="picker__quick">
+            <button type="button" data-minutes="0">:00</button>
+            <button type="button" data-minutes="15">:15</button>
+            <button type="button" data-minutes="30">:30</button>
+            <button type="button" data-minutes="45">:45</button>
+          </div>
+          <div class="picker__keys">
+            <button type="button" data-key="1">1</button>
+            <button type="button" data-key="2">2</button>
+            <button type="button" data-key="3">3</button>
+            <button type="button" data-key="4">4</button>
+            <button type="button" data-key="5">5</button>
+            <button type="button" data-key="6">6</button>
+            <button type="button" data-key="7">7</button>
+            <button type="button" data-key="8">8</button>
+            <button type="button" data-key="9">9</button>
+            <button type="button" data-key="erase" aria-label="Erase">⌫</button>
+            <button type="button" data-key="0">0</button>
+            <button class="picker__set" type="button">Set</button>
+          </div>
+        </div>
+
+        <div class="picker__calendar" hidden>
+          <div class="picker__month">
+            <button type="button" data-month="-1" aria-label="Previous month">‹</button>
+            <span class="picker__month-name"></span>
+            <button type="button" data-month="1" aria-label="Next month">›</button>
+          </div>
+          <div class="picker__days"></div>
+        </div>
+
+        <p class="picker__hint">
+          Type <kbd>1</kbd><kbd>4</kbd><kbd>3</kbd><kbd>5</kbd>. <kbd>T</kbd> today,
+          <kbd>M</kbd> tomorrow, <kbd>O</kbd> other. <kbd>Enter</kbd> sets, <kbd>Esc</kbd> closes.
+        </p>
+        <button class="picker__set picker__set--desk" type="button">Set</button>
+      </div>
     </dialog>
 
     <script type="module" src="./app.js"></script>
