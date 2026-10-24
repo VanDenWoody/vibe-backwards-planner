@@ -1,4 +1,4 @@
-const CACHE_NAME = "backwards-planner-v9";
+const CACHE_NAME = "backwards-planner-v10";
 
 const ASSETS = [
   "./",
@@ -9,6 +9,7 @@ const ASSETS = [
   "./plan.js",
   "./storage.js",
   "./templates.js",
+  "./sharing.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

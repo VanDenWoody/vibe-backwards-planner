@@ -9,6 +9,15 @@ import {
   saveTemplate,
 } from "./templates.js";
 import {
+  SHARE_PARAM,
+  addImported,
+  exportLibrary,
+  parseExportFile,
+  readSharedLink,
+  shareUrl,
+  uniqueName,
+} from "./sharing.js";
+import {
   loadActiveTemplateId,
   loadPlan,
   loadTemplates,
@@ -43,6 +52,17 @@ const templatesTabEl = document.querySelector("#tab-templates");
 const saveTemplateEl = document.querySelector("#template-save");
 const templateListEl = document.querySelector("#template-list");
 const templatesEmptyEl = document.querySelector("#templates-empty");
+const exportAllEl = document.querySelector("#export-all");
+const importOpenEl = document.querySelector("#import-open");
+const importFileEl = document.querySelector("#import-file");
+const importDialogEl = document.querySelector("#import-dialog");
+const importFormEl = document.querySelector("#import-form");
+const importTitleEl = document.querySelector("#import-title");
+const importBodyEl = document.querySelector("#import-body");
+const importAllRowEl = document.querySelector("#import-all-row");
+const importAllEl = document.querySelector("#import-all");
+const importAllLabelEl = document.querySelector("#import-all-label");
+const importButtonsEl = document.querySelector("#import-buttons");
 
 const timeFmt = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -228,30 +248,42 @@ function templateRow(template) {
   for (const [action, label] of [
     ["load", "Load"],
     ["update", "Update"],
-    ["rename", "Rename"],
+    ["share", "Share"],
   ]) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className =
-      action === "load" ? "template__action template__action--load" : "template__action";
-    button.dataset.action = action;
-    button.textContent = label;
-    // The row's name is a sibling, not part of the button, so the accessible
-    // name has to carry it or every row sounds identical.
-    button.setAttribute("aria-label", `${label} “${template.name}”`);
-    actions.append(button);
+    actions.append(actionButton(template, action, label, "template__action"));
   }
 
-  const remove = document.createElement("button");
-  remove.type = "button";
-  remove.className = "template__action template__action--delete";
-  remove.dataset.action = "delete";
-  remove.textContent = "Delete";
-  remove.setAttribute("aria-label", `Delete “${template.name}”`);
-  actions.append(remove);
+  // Rename and Delete are the rare ones, so they wait behind ⋯ and the row
+  // keeps to one line on a phone.
+  const more = document.createElement("details");
+  more.className = "template__more";
+  const toggle = document.createElement("summary");
+  toggle.className = "template__action template__more-toggle";
+  toggle.textContent = "⋯";
+  toggle.setAttribute("aria-label", `More actions for “${template.name}”`);
+  const menu = document.createElement("div");
+  menu.className = "template__menu";
+  menu.append(
+    actionButton(template, "rename", "Rename", "template__menu-item"),
+    actionButton(template, "delete", "Delete", "template__menu-item template__menu-item--delete")
+  );
+  more.append(toggle, menu);
+  actions.append(more);
 
   li.append(actions);
   return li;
+}
+
+function actionButton(template, action, label, className) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = action === "load" ? `${className} ${className}--load` : className;
+  button.dataset.action = action;
+  button.textContent = label;
+  // The row's name is a sibling, not part of the button, so the accessible
+  // name has to carry it or every row sounds identical.
+  button.setAttribute("aria-label", `${label} “${template.name}”`);
+  return button;
 }
 
 function namingRow(value, label) {
@@ -306,6 +338,7 @@ function renderTemplates() {
 
   const hasSteps = state.steps.length > 0;
   saveTemplateEl.hidden = !hasSteps || naming !== null;
+  exportAllEl.hidden = library.items.length === 0;
   templatesEmptyEl.hidden = library.items.length > 0 || naming !== null;
   templatesEmptyEl.textContent = hasSteps
     ? "Nothing saved yet. Save the plan you have and it will appear here."
@@ -372,6 +405,17 @@ function beginPending(message, restore) {
   commitPending();
   pending = restore;
   undoMessageEl.textContent = message;
+  undoActionEl.hidden = false;
+  undoEl.hidden = false;
+  pendingTimer = window.setTimeout(commitPending, UNDO_MS);
+}
+
+// The undo bar without its button, for news that has nothing to take back. It
+// still commits whatever undo was pending, as any other action does.
+function showNotice(message) {
+  commitPending();
+  undoMessageEl.textContent = message;
+  undoActionEl.hidden = true;
   undoEl.hidden = false;
   pendingTimer = window.setTimeout(commitPending, UNDO_MS);
 }
@@ -609,8 +653,24 @@ templateListEl.addEventListener("click", (event) => {
 
   if (button.dataset.action === "load") loadTemplate(template);
   else if (button.dataset.action === "update") updateTemplate(template);
+  else if (button.dataset.action === "share") shareTemplate(template);
   else if (button.dataset.action === "rename") setNaming({ kind: "rename", id: template.id });
   else if (button.dataset.action === "delete") deleteTemplate(template);
+});
+
+// An open ⋯ menu closes on a click anywhere else, and on Escape.
+document.addEventListener("click", (event) => {
+  for (const more of templateListEl.querySelectorAll(".template__more[open]")) {
+    if (!more.contains(event.target)) more.open = false;
+  }
+});
+
+templateListEl.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const more = event.target.closest(".template__more[open]");
+  if (more === null) return;
+  more.open = false;
+  more.querySelector("summary").focus();
 });
 
 templateListEl.addEventListener("input", (event) => {
@@ -675,9 +735,261 @@ templateListEl.addEventListener("submit", (event) => {
   beginPending(`Renamed “${was}” to “${name}”`, () => commitLibrary(previous));
 });
 
+async function shareTemplate(template) {
+  const url = shareUrl(window.location.href, template);
+
+  // The share sheet is how a phone reaches WhatsApp and the rest. Dismissing
+  // it is an answer, not a failure, so only a real error falls through.
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({ title: template.name, text: `Template “${template.name}”`, url });
+      return;
+    } catch (error) {
+      if (error.name === "AbortError") return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    showNotice(`Copied a link to “${template.name}”`);
+  } catch {
+    window.prompt("Copy this link", url);
+  }
+}
+
+function localDate(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function exportAll() {
+  const blob = new Blob([exportLibrary(library)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `backwards-planner-templates-${localDate(new Date())}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// One dialog serves every import question. ask() fills it and resolves with
+// the value of the button pressed; Escape resolves with "", which every caller
+// reads as "stop". check, when given, can keep the dialog open for a fix.
+let askResolve = null;
+let askCheck = null;
+
+function ask({ title, body, buttons, all = "", check = null }) {
+  importTitleEl.textContent = title;
+  importBodyEl.replaceChildren(...body);
+  importAllRowEl.hidden = all === "";
+  importAllLabelEl.textContent = all;
+  importAllEl.checked = false;
+  importButtonsEl.replaceChildren(
+    ...buttons.map(({ value, label, primary = false }) => {
+      const button = document.createElement("button");
+      button.value = value;
+      button.textContent = label;
+      button.className = primary ? "import__button import__button--primary" : "import__button";
+      // Validation is check's job; the browser's own would block Cancel too.
+      button.formNoValidate = true;
+      return button;
+    })
+  );
+  askCheck = check;
+  importDialogEl.returnValue = "";
+  importDialogEl.showModal();
+  return new Promise((resolve) => {
+    askResolve = resolve;
+  });
+}
+
+importFormEl.addEventListener("submit", (event) => {
+  if (askCheck !== null && !askCheck(event.submitter?.value ?? "")) event.preventDefault();
+});
+
+importDialogEl.addEventListener("close", () => {
+  const resolve = askResolve;
+  askResolve = null;
+  askCheck = null;
+  if (resolve !== null) resolve({ choice: importDialogEl.returnValue, all: importAllEl.checked });
+});
+
+function facts(...lines) {
+  const list = document.createElement("ul");
+  list.className = "import__facts";
+  for (const line of lines) {
+    const item = document.createElement("li");
+    item.textContent = line;
+    list.append(item);
+  }
+  return list;
+}
+
+function deadlineFact(template) {
+  return template.deadlineLabel.trim() === "" ? [] : [`Deadline: ${template.deadlineLabel}`];
+}
+
+// Imports a shared template (one, asked about first) or a file (many, asked
+// about only when a name is taken). Nothing reaches the library until every
+// question is answered, so stopping half way leaves it as it was, and the
+// whole import comes back with one undo.
+async function importTemplates(incoming, { fromFile }) {
+  let next = library;
+  let count = 0;
+  let lastName = "";
+  let lastMode = "";
+  let remembered = "";
+
+  for (let i = 0; i < incoming.length; i += 1) {
+    const template = incoming[i];
+    const clash = findTemplateByName(next, template.name);
+    let mode = "new";
+
+    if (clash !== undefined) {
+      mode = remembered;
+      if (mode === "") {
+        const later = incoming
+          .slice(i + 1)
+          .filter((other) => findTemplateByName(next, other.name) !== undefined).length;
+        const answer = await ask({
+          title: `You already have “${clash.name}”.`,
+          body: [
+            facts(
+              `Yours: ${summarize(clash)}`,
+              `${fromFile ? "In the file" : "Shared"}: ${summarize(template)}`
+            ),
+          ],
+          buttons: [
+            { value: "replace", label: "Replace mine", primary: true },
+            { value: "new", label: "Keep both" },
+            fromFile ? { value: "skip", label: "Skip" } : { value: "", label: "Cancel" },
+          ],
+          all:
+            later === 0
+              ? ""
+              : `Do the same for the ${later} other${later === 1 ? "" : "s"} with a name you already have`,
+        });
+        if (answer.choice === "") return;
+        mode = answer.choice;
+        if (answer.all) remembered = mode;
+      }
+    } else if (!fromFile) {
+      const answer = await ask({
+        title: `Import template “${template.name}”?`,
+        body: [facts(summarize(template), ...deadlineFact(template))],
+        buttons: [
+          { value: "new", label: "Import", primary: true },
+          { value: "", label: "Cancel" },
+        ],
+      });
+      if (answer.choice === "") return;
+    }
+
+    if (mode === "skip") continue;
+    // Worked out before the add: a kept copy is saved under a numbered name,
+    // and the message has to quote the name that actually landed.
+    lastName = mode === "replace" ? clash.name : uniqueName(next, template.name);
+    lastMode = mode;
+    next = addImported(next, template, mode);
+    count += 1;
+  }
+
+  if (count === 0) {
+    showNotice("Nothing imported");
+    return;
+  }
+
+  const previous = library;
+  selectTab(templatesTabEl, { focus: false });
+  commitLibrary(next);
+  let message = `Imported ${count} templates`;
+  if (count === 1) message = lastMode === "replace" ? `Replaced “${lastName}”` : `Imported “${lastName}”`;
+  beginPending(message, () => commitLibrary(previous));
+}
+
+async function openImport() {
+  const choose = document.createElement("button");
+  choose.type = "button";
+  choose.className = "import__file";
+  choose.textContent = "Choose a file…";
+  // The file picker only opens from inside the click itself, so this cannot
+  // wait for the dialog's answer like the other buttons do.
+  choose.addEventListener("click", () => {
+    importDialogEl.close("");
+    importFileEl.click();
+  });
+
+  const or = document.createElement("p");
+  or.className = "import__or";
+  or.textContent = "or paste a link someone shared with you:";
+
+  const paste = document.createElement("input");
+  paste.className = "import__paste";
+  paste.type = "text";
+  paste.placeholder = "Shared link";
+  paste.autocomplete = "off";
+  paste.setAttribute("aria-label", "Shared link");
+  paste.addEventListener("input", () => paste.setCustomValidity(""));
+
+  let pasted = null;
+  const answer = await ask({
+    title: "Import templates",
+    body: [choose, or, paste],
+    buttons: [
+      { value: "paste", label: "Import", primary: true },
+      { value: "", label: "Cancel" },
+    ],
+    check(value) {
+      if (value !== "paste") return true;
+      pasted = readSharedLink(paste.value);
+      if (pasted !== null) return true;
+      paste.setCustomValidity(
+        paste.value.trim() === "" ? "Paste a link first." : "That is not a template link."
+      );
+      paste.reportValidity();
+      return false;
+    },
+  });
+  if (answer.choice === "paste") importTemplates([pasted], { fromFile: false });
+}
+
+// A shared link opens the app with the template in the hash. It is read once
+// and then cleared, so a reload does not ask again.
+function takeSharedLink() {
+  if (!window.location.hash.includes(`${SHARE_PARAM}=`)) return;
+  const incoming = readSharedLink(window.location.hash);
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  selectTab(templatesTabEl, { focus: false });
+  if (incoming === null) {
+    showNotice("That shared link is damaged or from a newer version");
+    return;
+  }
+  importTemplates([incoming], { fromFile: false });
+}
+
+exportAllEl.addEventListener("click", exportAll);
+importOpenEl.addEventListener("click", openImport);
+
+importFileEl.addEventListener("change", async () => {
+  const [file] = importFileEl.files;
+  // Cleared at once, so choosing the same file again still fires change.
+  importFileEl.value = "";
+  if (file === undefined) return;
+
+  const incoming = parseExportFile(await file.text());
+  if (incoming === null) showNotice("That file is not a template export");
+  else if (incoming.length === 0) showNotice("That file has no templates");
+  else importTemplates(incoming, { fromFile: true });
+});
+
+window.addEventListener("hashchange", takeSharedLink);
+
 deadlineInputEl.value = state.deadline;
 deadlineLabelEl.value = state.deadlineLabel;
 render();
+takeSharedLink();
 
 if ("serviceWorker" in navigator) {
   // The page on screen was served from the old cache, so a new version only

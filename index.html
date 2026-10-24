@@ -116,6 +116,11 @@
           </button>
         </p>
         <ul id="template-list" class="template-list"></ul>
+        <p class="transfer">
+          <button id="export-all" class="transfer__action" type="button">Export all</button>
+          <button id="import-open" class="transfer__action" type="button">Import…</button>
+        </p>
+        <input id="import-file" type="file" accept=".json,application/json" hidden />
       </section>
     </main>
 
@@ -123,6 +128,18 @@
       <span id="undo-message" class="undo__message"></span>
       <button id="undo-action" class="undo__action" type="button">Undo</button>
     </div>
+
+    <dialog id="import-dialog" class="import" aria-labelledby="import-title">
+      <form id="import-form" class="import__form" method="dialog">
+        <h2 id="import-title" class="import__title"></h2>
+        <div id="import-body" class="import__body"></div>
+        <label id="import-all-row" class="import__all" hidden>
+          <input id="import-all" type="checkbox" />
+          <span id="import-all-label"></span>
+        </label>
+        <div id="import-buttons" class="import__buttons"></div>
+      </form>
+    </dialog>
 
     <script type="module" src="./app.js"></script>
   </body>
