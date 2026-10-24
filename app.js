@@ -545,9 +545,6 @@ function selectTab(tab, { focus = true } = {}) {
   if (tab !== templatesTabEl && naming !== null) setNaming(null);
   if (tab !== planningTabEl && reordering) setReordering(false);
   if (tab !== planningTabEl && inserting) setInserting(false);
-  // Google's script is fetched before Turn on can be tapped, because the
-  // popup has to open inside that tap, with nothing awaited first.
-  if (tab === templatesTabEl) ensureGis();
 }
 
 function render() {
@@ -1327,8 +1324,14 @@ const driveClient = createDriveClient(
   () => (auth === null ? null : auth.token())
 );
 
+// Turning on takes two taps while sync is off, because nothing may reach
+// Google before the user asks: Turn on fetches Google's script ("connecting"),
+// and Continue with Google opens the popup, which a browser only allows
+// directly inside a tap ("ready").
 const SYNC_ROWS = {
-  off: { text: "Sync templates with Google Drive", action: ["on", "Turn on"] },
+  off: { text: "Sync templates with Google Drive", action: ["connect", "Turn on"] },
+  connecting: { text: "Connecting to Google…" },
+  ready: { text: "Google sign-in is ready", action: ["on", "Continue with Google"], primary: true },
   syncing: { text: "Syncing…" },
   synced: { more: true },
   "needs-sign-in": { row: "sign-in" },
@@ -1364,6 +1367,7 @@ function renderSync() {
   }
   syncActionEl.hidden = action === null;
   syncActionEl.classList.toggle("sync__action--row", row.row !== undefined);
+  syncActionEl.classList.toggle("sync__action--primary", row.primary === true);
   if (action !== null) {
     syncActionEl.dataset.sync = action[0];
     syncActionEl.textContent = action[1];
@@ -1390,6 +1394,8 @@ function restingSyncStatus() {
   return "synced";
 }
 
+// Called only once the user has asked for sync: on Turn on, or at start when
+// sync is already on.
 function ensureGis() {
   if (homeScreenIos || auth !== null) return;
   loadGis()
@@ -1397,7 +1403,12 @@ function ensureGis() {
       if (auth !== null) return;
       auth = createAuth({ onToken: tokenArrived, onError: signInFailed });
       gisFailed = false;
-      if (syncStatus !== "syncing") setSyncStatus(restingSyncStatus());
+      if (syncStatus === "connecting") {
+        setSyncStatus("ready");
+        syncActionEl.focus();
+      } else if (syncStatus !== "syncing") {
+        setSyncStatus(restingSyncStatus());
+      }
     })
     .catch(() => {
       gisFailed = true;
@@ -1604,11 +1615,14 @@ function syncTap(action) {
     window.location.reload();
   } else if (action === "load") {
     gisFailed = false;
-    setSyncStatus(restingSyncStatus());
+    setSyncStatus(syncState.enabled ? restingSyncStatus() : "connecting");
+    ensureGis();
+  } else if (action === "connect" && auth === null) {
+    setSyncStatus("connecting");
     ensureGis();
   } else if (action === "off") {
     turnSyncOff();
-  } else if (action === "on" || !syncState.enabled) {
+  } else if (action === "on" || action === "connect" || !syncState.enabled) {
     // Synchronous on purpose: anything awaited before this and the browser
     // no longer counts it as part of the tap, and blocks the popup.
     auth.request("consent", "");

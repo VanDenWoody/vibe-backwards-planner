@@ -33,9 +33,11 @@ Runs `node --test` over the pure modules. No `npm install` required.
 Templates can sync between one person's devices through their own Google Drive.
 Sync is off until you turn it on in the sync row on the Templates tab:
 
-- Google's sign-in script is fetched the first time the Templates tab opens, so
-  that **Turn on** can open Google's popup inside the tap. Nothing is sent to
-  Google until you tap **Turn on**.
+- While sync is off the app makes no contact with Google. **Turn on** fetches
+  Google's sign-in script, then **Continue with Google** opens Google's sign-in
+  window: a browser only lets a popup open directly inside a tap, so the
+  script has to be there before that tap. Once sync is on, the script loads
+  each time the app starts.
 - **Turn on** asks Google for access to the app's own hidden Drive folder
   (`drive.appdata`) and your email address. Nothing else in your Drive is
   visible to the app.
