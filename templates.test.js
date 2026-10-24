@@ -12,6 +12,9 @@ import {
   planStepsFrom,
   sameContent,
   stampChanges,
+  timeOfDeadline,
+  nextOccurrence,
+  onSameDay,
 } from "./templates.js";
 
 test("emptyLibrary has the current version and no items", () => {
@@ -45,6 +48,7 @@ test("normalizeLibrary accepts well-formed items and drops unknown fields", () =
         id: "t1",
         name: "Airport run",
         deadlineLabel: "Flight departs",
+        deadlineTime: "",
         steps: [{ label: "Check in", minutes: 45 }],
         updatedAt: 0,
       },
@@ -62,7 +66,7 @@ test("normalizeLibrary defaults a missing deadlineLabel", () => {
 });
 
 test("normalizeLibrary drops only the malformed items, keeping the rest", () => {
-  const good = { id: "t1", name: "Keep me", deadlineLabel: "", steps: [], updatedAt: 0 };
+  const good = { id: "t1", name: "Keep me", deadlineLabel: "", deadlineTime: "", steps: [], updatedAt: 0 };
   const result = normalizeLibrary({
     version: 1,
     items: [
@@ -243,7 +247,7 @@ test("normalizeLibrary migrates version 1 to version 2", () => {
   const result = normalizeLibrary({ version: 1, items: [{ id: "t1", name: "A", deadlineLabel: "", steps: [] }] });
   assert.deepEqual(result, {
     version: 2,
-    items: [{ id: "t1", name: "A", deadlineLabel: "", steps: [], updatedAt: 0 }],
+    items: [{ id: "t1", name: "A", deadlineLabel: "", deadlineTime: "", steps: [], updatedAt: 0 }],
     tombstones: [],
   });
 });
@@ -251,7 +255,7 @@ test("normalizeLibrary migrates version 1 to version 2", () => {
 test("normalizeLibrary keeps a version 2 library with its updatedAt", () => {
   const raw = {
     version: 2,
-    items: [{ id: "t1", name: "A", deadlineLabel: "", steps: [], updatedAt: 7 }],
+    items: [{ id: "t1", name: "A", deadlineLabel: "", deadlineTime: "", steps: [], updatedAt: 7 }],
     tombstones: [{ id: "t2", deletedAt: 9 }],
   };
   assert.deepEqual(normalizeLibrary(raw), raw);
@@ -361,4 +365,55 @@ test("stampChanges leaves its inputs untouched", () => {
   const snapshot = JSON.stringify([previous, next]);
   stampChanges(previous, next, 100);
   assert.equal(JSON.stringify([previous, next]), snapshot);
+});
+
+test("createTemplate keeps a clock time and drops anything else", () => {
+  assert.equal(createTemplate("A", "", [], "08:15").deadlineTime, "08:15");
+  assert.equal(createTemplate("A", "", []).deadlineTime, "");
+  for (const bad of ["8:15", "24:00", "08:60", "2026-10-25T08:15", 815, null]) {
+    assert.equal(createTemplate("A", "", [], bad).deadlineTime, "", `should drop: ${String(bad)}`);
+  }
+});
+
+test("normalizeLibrary keeps a valid deadlineTime and blanks a broken one", () => {
+  const result = normalizeLibrary({
+    version: 2,
+    items: [
+      { id: "t1", name: "A", steps: [], deadlineTime: "23:59" },
+      { id: "t2", name: "B", steps: [], deadlineTime: "noon" },
+    ],
+    tombstones: [],
+  });
+  assert.deepEqual(result.items.map((item) => item.deadlineTime), ["23:59", ""]);
+});
+
+test("sameContent sees a changed deadline time", () => {
+  const a = createTemplate("A", "", [], "08:15");
+  assert.equal(sameContent(a, { ...a, deadlineTime: "08:30" }), false);
+  assert.equal(sameContent(a, { ...a }), true);
+});
+
+test("timeOfDeadline takes the clock time of a plan deadline", () => {
+  assert.equal(timeOfDeadline("2026-10-30T14:00"), "14:00");
+  assert.equal(timeOfDeadline("2026-10-30T14:00:30"), "14:00");
+  assert.equal(timeOfDeadline(""), "");
+  assert.equal(timeOfDeadline(undefined), "");
+});
+
+test("nextOccurrence is today while the time is still ahead", () => {
+  assert.equal(nextOccurrence("08:15", new Date(2026, 9, 24, 7, 0)), "2026-10-24T08:15");
+});
+
+test("nextOccurrence is tomorrow once the time has passed or is now", () => {
+  assert.equal(nextOccurrence("08:15", new Date(2026, 9, 24, 13, 23)), "2026-10-25T08:15");
+  assert.equal(nextOccurrence("08:15", new Date(2026, 9, 24, 8, 15)), "2026-10-25T08:15");
+});
+
+test("nextOccurrence rolls over the end of a month and a year", () => {
+  assert.equal(nextOccurrence("06:00", new Date(2026, 9, 31, 22, 0)), "2026-11-01T06:00");
+  assert.equal(nextOccurrence("00:00", new Date(2026, 11, 31, 0, 1)), "2027-01-01T00:00");
+});
+
+test("onSameDay keeps the date and swaps the time", () => {
+  assert.equal(onSameDay("2026-10-30T14:00", "08:15"), "2026-10-30T08:15");
 });

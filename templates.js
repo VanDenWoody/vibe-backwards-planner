@@ -12,6 +12,39 @@ function isTime(value) {
   return Number.isFinite(value) && value >= 0;
 }
 
+// A template's deadline is a clock time without a date ("08:15"), or "" for a
+// template that leaves the deadline alone.
+function isClock(value) {
+  return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function pad(number) {
+  return String(number).padStart(2, "0");
+}
+
+// The clock time of a plan deadline ("2026-10-30T14:00" gives "14:00"), or ""
+// when there is no deadline to take it from.
+export function timeOfDeadline(deadline) {
+  if (typeof deadline !== "string") return "";
+  const match = deadline.match(/^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})/);
+  return match !== null && isClock(match[1]) ? match[1] : "";
+}
+
+// The next time the clock shows time, as a plan deadline: today if it is still
+// ahead of now, otherwise tomorrow. Built from local parts, so a daylight
+// saving change in between still lands on the clock time asked for.
+export function nextOccurrence(time, now) {
+  const [hours, minutes] = time.split(":").map(Number);
+  const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+  if (at <= now) at.setDate(at.getDate() + 1);
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${time}`;
+}
+
+// The same day as deadline, at time instead.
+export function onSameDay(deadline, time) {
+  return `${deadline.slice(0, 10)}T${time}`;
+}
+
 function normalizeSteps(raw) {
   if (!Array.isArray(raw)) return null;
 
@@ -37,6 +70,7 @@ export function normalizeTemplate(raw) {
     id: raw.id,
     name: raw.name,
     deadlineLabel: typeof raw.deadlineLabel === "string" ? raw.deadlineLabel : "",
+    deadlineTime: isClock(raw.deadlineTime) ? raw.deadlineTime : "",
     steps,
     updatedAt: isTime(raw.updatedAt) ? raw.updatedAt : 0,
   };
@@ -90,11 +124,12 @@ function newId() {
 // Steps arrive as plan steps and lose their ids on the way in: a template is a
 // recipe, and every load mints fresh steps from it. Stamping updatedAt is
 // stampChanges' job, so a new template starts at 0.
-export function createTemplate(name, deadlineLabel, steps) {
+export function createTemplate(name, deadlineLabel, steps, deadlineTime = "") {
   return {
     id: newId(),
     name: typeof name === "string" ? name.trim() : "",
     deadlineLabel: typeof deadlineLabel === "string" ? deadlineLabel : "",
+    deadlineTime: isClock(deadlineTime) ? deadlineTime : "",
     steps: (Array.isArray(steps) ? steps : []).map((step) => ({
       label: step.label,
       minutes: step.minutes,
@@ -143,6 +178,7 @@ export function removeTemplate(library, id) {
 
 export function sameContent(a, b) {
   if (a.name !== b.name || a.deadlineLabel !== b.deadlineLabel) return false;
+  if (a.deadlineTime !== b.deadlineTime) return false;
   if (a.steps.length !== b.steps.length) return false;
   return a.steps.every(
     (step, i) => step.label === b.steps[i].label && step.minutes === b.steps[i].minutes
