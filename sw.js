@@ -12,6 +12,7 @@ const ASSETS = [
   "./sharing.js",
   "./sync.js",
   "./drive.js",
+  "./privacy.html",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -44,9 +45,14 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (new URL(event.request.url).origin !== self.location.origin) return;
 
+  // A page that is cached under its own URL (privacy.html) is served as
+  // itself; every other navigation is the app.
   if (event.request.mode === "navigate") {
     event.respondWith(
-      caches.match("./index.html").then((hit) => hit || fetch(event.request))
+      caches
+        .match(event.request, { ignoreSearch: true })
+        .then((hit) => hit || caches.match("./index.html"))
+        .then((hit) => hit || fetch(event.request))
     );
     return;
   }

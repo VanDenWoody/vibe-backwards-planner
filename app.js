@@ -870,8 +870,11 @@ addStepEl.addEventListener("submit", (event) => {
 function commitLibrary(next) {
   library = stampChanges(library, next, Date.now());
   saveTemplates(library);
-  syncState.dirty = true;
-  saveSyncState(syncState);
+  // Without sync there is nothing to wait for, and no sync key to write.
+  if (syncState.enabled) {
+    syncState.dirty = true;
+    saveSyncState(syncState);
+  }
   renderTemplates();
   scheduleSync();
 }

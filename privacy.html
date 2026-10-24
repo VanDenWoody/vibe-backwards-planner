@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Privacy — Backwards Planner</title>
+    <meta name="theme-color" content="#1f2937" />
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .privacy {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+        line-height: 1.5;
+      }
+      .privacy a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="privacy">
+      <h1>Privacy</h1>
+      <p>
+        Backwards Planner has no server and no account of its own. Your plan and your
+        templates are stored in this browser, on this device.
+      </p>
+      <h2>Google Drive sync</h2>
+      <p>
+        Sync is off unless you turn it on. When it is on, your templates are copied to
+        a hidden app folder in <strong>your own</strong> Google Drive, so your other
+        devices can read them. The app asks Google for access to that app folder only
+        (<code>drive.appdata</code>), not to the rest of your Drive, plus your email
+        address, which it shows in the sync row so you can see which account is in use.
+      </p>
+      <p>
+        The data goes straight from your browser to Google. Nothing is sent to the
+        app's maker or to anyone else. The sign-in token is kept in memory only and is
+        gone when you close the app.
+      </p>
+      <h2>Removing your data</h2>
+      <ul>
+        <li>On a device: turn sync off on the Templates tab, then clear this site's data in the browser.</li>
+        <li>
+          In Google Drive: open Drive, go to <strong>Settings → Manage apps</strong>, find
+          Backwards Planner, choose <strong>Options → Delete hidden app data</strong>, then
+          <strong>Disconnect from Drive</strong>.
+        </li>
+      </ul>
+      <p><a href="./">Back to the planner</a></p>
+    </main>
+  </body>
+</html>
