@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>What's new in Backwards Planner, 24 October</title>
-<meta name="description" content="Plan around other people, sync templates between your devices, and set times faster: what's new in Backwards Planner.">
+<title>Backwards Planner release notes</title>
+<meta name="description" content="What's new in Backwards Planner, newest first. Latest (24 October 2026): negative steps, template sync with Google Drive, a new deadline picker, reorder and insert, share and import.">
 <meta name="theme-color" content="#0b1120">
-<meta property="og:type" content="article">
+<meta property="og:type" content="website">
 <meta property="og:site_name" content="Backwards Planner">
-<meta property="og:title" content="What's new in Backwards Planner">
-<meta property="og:description" content="Plan around other people, sync templates between your devices, and set times faster: what's new in Backwards Planner.">
-<meta property="og:url" content="https://vandenwoody.github.io/vibe-backwards-planner/whats-new/2026-10-24.html">
-<meta property="og:image" content="https://vandenwoody.github.io/vibe-backwards-planner/whats-new/2026-10-24.png">
+<meta property="og:title" content="Backwards Planner release notes">
+<meta property="og:description" content="What's new in Backwards Planner, newest first. Latest (24 October 2026): negative steps, template sync with Google Drive, a new deadline picker, reorder and insert, share and import.">
+<meta property="og:url" content="https://vandenwoody.github.io/vibe-backwards-planner/release-notes/">
+<meta property="og:image" content="https://vandenwoody.github.io/vibe-backwards-planner/release-notes/preview.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Backwards Planner update of 24 October: a plan for picking someone up from the airport">
+<meta property="og:image:alt" content="Backwards Planner release notes, with a plan for picking someone up from the airport">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="../icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -76,7 +76,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-
   text-transform: uppercase;
   color: var(--muted);
 }
-h1, h2 {
+h1, h2, h3 {
   font-family: var(--font-display);
   text-wrap: balance;
   margin: 0;
@@ -86,19 +86,18 @@ h1 { font-size: clamp(2.2rem, 9vw, 3.4rem); font-weight: 800; letter-spacing: -0
 h1 em { font-style: normal; color: var(--accent); }
 .lede { margin: 0; font-size: 1.1rem; color: #d1d5db; max-width: 34em; }
 
-.jump {
-  display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none;
+
+/* ---------- Release: one dated block per release, newest first ---------- */
+.release { display: flex; flex-direction: column; gap: 3.5rem; scroll-margin-top: 1rem; }
+.release__date {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--line);
 }
-.jump a {
-  display: inline-block;
-  padding: 0.4rem 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 0.9rem;
-  text-decoration: none;
-  color: var(--text);
-}
-.jump a:hover { background: var(--accent-soft); }
 
 /* ---------- Feature ---------- */
 .feature { display: flex; flex-direction: column; gap: 1.1rem; scroll-margin-top: 1rem; }
@@ -112,7 +111,7 @@ h1 em { font-style: normal; color: var(--accent); }
   padding: 0.25rem 0.6rem;
   border-radius: 6px;
 }
-h2 { font-size: clamp(1.6rem, 6.5vw, 2.2rem); font-weight: 800; letter-spacing: -0.015em; }
+h3 { font-size: clamp(1.6rem, 6.5vw, 2.2rem); font-weight: 800; letter-spacing: -0.015em; }
 .feature p { margin: 0; max-width: 34em; }
 .feature ul.points { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; max-width: 34em; }
 .muted { color: var(--muted); }
@@ -378,7 +377,7 @@ kbd {
 .cta__url { font-size: 0.85rem; color: var(--muted); word-break: break-all; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .jump a, .cta__btn { transition: background 0.15s; }
+  .cta__btn { transition: background 0.15s; }
 }
 </style>
 
@@ -387,23 +386,19 @@ kbd {
 <main class="page">
 
   <header class="hero">
-    <span class="eyebrow">Backwards Planner &middot; Saturday 24 October 2026</span>
-    <h1>What&rsquo;s new in <em>Backwards Planner</em></h1>
-    <p class="lede">Backwards Planner works out when you have to leave. You set the deadline, add what has to happen before it, and it counts back. These are the changes of 24 October.</p>
+    <span class="eyebrow">Backwards Planner</span>
+    <h1>Release notes</h1>
+    <p class="lede">Backwards Planner works out when you have to leave. You set the deadline, add what has to happen before it, and it counts back. New features are listed here, newest first.</p>
 
-    <ul class="jump" aria-label="Jump to a feature">
-      <li><a href="#meet">Negative steps</a></li>
-      <li><a href="#sync">Sync</a></li>
-      <li><a href="#picker">Deadline picker</a></li>
-      <li><a href="#edit">Reorder &amp; insert</a></li>
-      <li><a href="#share">Share &amp; import</a></li>
-    </ul>
   </header>
 
-  <!-- 1. Negative steps -->
-  <section class="feature" id="meet">
+  <section class="release" id="2026-10-24" aria-labelledby="release-2026-10-24">
+  <h2 class="release__date" id="release-2026-10-24"><time datetime="2026-10-24">24 October 2026</time></h2>
+
+  <!-- Negative steps -->
+  <section class="feature" id="2026-10-24-negative-steps">
     <span class="feature__tag">New</span>
-    <h2>Negative steps for someone else&rsquo;s time</h2>
+    <h3>Negative steps for someone else&rsquo;s time</h3>
     <p>The plane lands at 11:00, but your friend still has to get off and through the passport queue. Enter those as <b>&minus;10</b> and <b>&minus;25</b>. Their steps run forward to a meet time, and your own steps count back from there.</p>
     <div class="stage">
       <div class="stage__label"><span>Planning tab</span><span>Phone &amp; desktop</span></div>
@@ -420,10 +415,10 @@ kbd {
     <p class="muted">Their steps are dashed and purple and always stay on top, so you never confuse them with yours. The total under &ldquo;Leave by&rdquo; counts only your own time.</p>
   </section>
 
-  <!-- 2. Sync -->
-  <section class="feature" id="sync">
+  <!-- ync -->
+  <section class="feature" id="2026-10-24-sync">
     <span class="feature__tag">New</span>
-    <h2>Template sync with Google Drive</h2>
+    <h3>Template sync with Google Drive</h3>
     <p>Save &ldquo;School run&rdquo; on your phone and it shows up on your laptop. Turn on sync at the bottom of the Templates tab and sign in with Google. Changes go across about three seconds after you make them.</p>
     <div class="stage">
       <div class="stage__label"><span>Templates tab</span><span>Phone &amp; desktop</span></div>
@@ -443,10 +438,10 @@ kbd {
     </ul>
   </section>
 
-  <!-- 3. Picker -->
-  <section class="feature" id="picker">
+  <!-- icker -->
+  <section class="feature" id="2026-10-24-picker">
     <span class="feature__tag">Redesigned</span>
-    <h2>New deadline picker</h2>
+    <h3>New deadline picker</h3>
     <p>Tap the time and a picker opens. Choose Today, Tomorrow or another day, then type the time: four digits and you&rsquo;re done. On a phone you get a keypad; on a computer you just type.</p>
     <div class="duo">
       <div class="stage">
@@ -494,10 +489,10 @@ kbd {
     </div>
   </section>
 
-  <!-- 4. Reorder & insert -->
-  <section class="feature" id="edit">
+  <!-- eorder & insert -->
+  <section class="feature" id="2026-10-24-reorder-insert">
     <span class="feature__tag">New</span>
-    <h2>Reorder and insert steps</h2>
+    <h3>Reorder and insert steps</h3>
     <p>Two new buttons under the plan. <b>Reorder</b> swaps the minutes for arrows so you can move steps up and down. <b>Insert</b> opens a slot between every pair of steps, so you can add one in the middle instead of only at the end.</p>
     <div class="duo">
       <div class="stage">
@@ -522,10 +517,10 @@ kbd {
     </div>
   </section>
 
-  <!-- 5. Share -->
-  <section class="feature" id="share">
+  <!-- hare -->
+  <section class="feature" id="2026-10-24-share">
     <span class="feature__tag">New</span>
-    <h2>Share, export and import templates</h2>
+    <h3>Share, export and import templates</h3>
     <p>Tap <b>Share</b> on a template. You get a link; whoever opens it is asked whether to add the template to their own list. To move everything at once, use <b>Export all</b> and <b>Import&hellip;</b> at the bottom of the Templates tab.</p>
     <div class="stage">
       <div class="stage__label"><span>Templates tab</span><span>Phone &amp; desktop</span></div>
@@ -539,12 +534,14 @@ kbd {
 
   <!-- Small things -->
   <section class="smalls">
-    <span class="feature__tag">Also new today</span>
+    <span class="feature__tag">Also new</span>
     <ul>
       <li><b>Templates remember the time</b><span>Loading &ldquo;School run&rdquo; sets 08:30 again. It only asks about the deadline when you reload the template you already have open.</span></li>
       <li><b>Template names fill themselves in</b><span>Saving a plan suggests the plan&rsquo;s name, so &ldquo;Dentist&rdquo; stays &ldquo;Dentist&rdquo;.</span></li>
       <li><b>The installed app updates itself</b><span>If you added it to your home screen, it now picks up new versions on its own.</span></li>
     </ul>
+  </section>
+
   </section>
 
   <section class="cta">

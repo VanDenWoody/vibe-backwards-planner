@@ -47,9 +47,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Release notes are shared as links and are not part of the app: leave them,
-  // and their preview images, to the network.
-  if (url.pathname.includes("/whats-new/")) return;
+  // The release notes are shared as a link and are not part of the app: leave
+  // the page (with or without its trailing slash) and its preview image to the
+  // network.
+  if (url.pathname.includes("/release-notes")) return;
 
   // A page that is cached under its own URL (privacy.html) is served as
   // itself; every other navigation is the app.
