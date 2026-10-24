@@ -110,7 +110,7 @@ h1 em { font-style: normal; color: var(--accent); }
 .toc__date { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
 
 /* ---------- Release: one dated block per release, newest first ---------- */
-.release { display: flex; flex-direction: column; gap: 3.5rem; scroll-margin-top: 1rem; }
+.release { display: flex; flex-direction: column; gap: 3.5rem; }
 .release__date {
   font-size: 1rem;
   font-weight: 600;
@@ -122,7 +122,6 @@ h1 em { font-style: normal; color: var(--accent); }
 }
 
 /* ---------- Feature ---------- */
-.feature, .smalls { scroll-margin-top: 1rem; }
 .feature { display: flex; flex-direction: column; gap: 1.1rem; }
 .feature__tag {
   align-self: flex-start;
@@ -202,6 +201,118 @@ kbd {
 .cta__btn:hover { background: #a5b4fc; }
 .cta__url { font-size: 0.85rem; color: var(--muted); word-break: break-all; }
 
+/* ---------- Always-visible contents ----------
+   Phone: a bar pinned to the top names the section you are in; tap it for the
+   full list. Wide screens: a pinned sidebar instead. Both are built by the
+   script at the bottom from every [data-toc] section, grouped by release date. */
+.release, .feature, .smalls, #top { scroll-margin-top: 4.5rem; }
+
+.bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 20;
+  background: rgba(11, 17, 32, 0.94);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 21;
+  background: var(--ink);
+}
+.bar__menu { max-width: 46rem; margin: 0 auto; position: relative; }
+.bar__current {
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-height: 3.25rem;
+  padding-block: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+.bar__current::-webkit-details-marker { display: none; }
+.bar__current:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.bar__kicker { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.bar__label { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar__date { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.bar__chev { margin-left: auto; color: var(--accent); }
+.bar__menu[open] .bar__chev { transform: rotate(180deg); }
+.bar__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  max-height: min(70vh, 32rem);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  padding: 0.5rem;
+}
+
+/* One list shape for both the bar's panel and the sidebar */
+.nav-group + .nav-group { margin-top: 0.75rem; }
+.nav-date {
+  display: block;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.nav-list { list-style: none; margin: 0; padding: 0; }
+.nav-list a {
+  display: block;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+.nav-list a:hover { background: rgba(255, 255, 255, 0.05); }
+.nav-list a[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.nav-top { display: block; padding: 0.55rem 0.6rem; color: var(--muted); text-decoration: none; border-radius: 8px; }
+.nav-top:hover { color: var(--text); }
+
+.side { display: none; }
+
+@media (min-width: 1100px) {
+  .bar { display: none; }
+  .release, .feature, .smalls, #top { scroll-margin-top: 1.5rem; }
+  .layout {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 46rem);
+    justify-content: center;
+    column-gap: 3rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .layout .page { margin: 0; padding-left: 0; padding-right: 0; }
+  .side:not([hidden]) {
+    display: block;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding-block: 2.5rem;
+    font-size: 0.95rem;
+  }
+  /* The sidebar carries the dates, so the list at the top would repeat it. */
+  .js .hero .toc { display: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bar__chev { transition: transform 0.15s; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .cta__btn { transition: background 0.15s; }
 }
@@ -209,7 +320,17 @@ kbd {
 
 </head>
 <body>
-<main class="page">
+<nav class="bar" aria-label="Contents" hidden>
+  <details class="bar__menu">
+    <summary class="bar__current"><span class="bar__kicker">You&rsquo;re at</span><span class="bar__label">Release notes</span><span class="bar__date"></span><span class="bar__chev" aria-hidden="true">&#9662;</span></summary>
+    <div class="bar__panel"></div>
+  </details>
+</nav>
+
+<div class="layout">
+<nav class="side" aria-label="Contents" hidden></nav>
+
+<main class="page" id="top">
 
   <header class="hero">
     <span class="eyebrow">Backwards Planner</span>
@@ -234,7 +355,7 @@ kbd {
   <h2 class="release__date" id="release-2026-10-24"><time datetime="2026-10-24">24 October 2026</time></h2>
 
   <!-- Negative steps -->
-  <section class="feature" id="2026-10-24-negative-steps">
+  <section class="feature" id="2026-10-24-negative-steps" data-toc="Negative steps">
     <span class="feature__tag">New</span>
     <h3>Negative steps for someone else&rsquo;s time</h3>
     <p>Picking someone up? Their plane lands at 11:00, but they still have to get off and through passport control. Enter those steps with negative minutes, like <b>&minus;10</b>. Their steps run forward to a meet time, and your own steps count back from there.</p>
@@ -246,7 +367,7 @@ kbd {
   </section>
 
   <!-- Sync -->
-  <section class="feature" id="2026-10-24-sync">
+  <section class="feature" id="2026-10-24-sync" data-toc="Template sync">
     <span class="feature__tag">New</span>
     <h3>Template sync with Google Drive</h3>
     <p>Save &ldquo;School run&rdquo; on your phone and it shows up on your laptop. Tap <b>Turn on</b> at the bottom of the Templates tab and sign in with Google. Changes go across about three seconds after you make them.</p>
@@ -263,7 +384,7 @@ kbd {
   </section>
 
   <!-- Picker -->
-  <section class="feature" id="2026-10-24-picker">
+  <section class="feature" id="2026-10-24-picker" data-toc="Deadline picker">
     <span class="feature__tag">Redesigned</span>
     <h3>New deadline picker</h3>
     <p>Tap the time and a picker opens. Choose Today, Tomorrow or another day, then type the time: four digits and you&rsquo;re done. On a phone you get a keypad; on a computer you just type.</p>
@@ -287,7 +408,7 @@ kbd {
   </section>
 
   <!-- Reorder & insert -->
-  <section class="feature" id="2026-10-24-reorder-insert">
+  <section class="feature" id="2026-10-24-reorder-insert" data-toc="Reorder and insert">
     <span class="feature__tag">New</span>
     <h3>Reorder and insert steps</h3>
     <p>Two new buttons under the plan. <b>Reorder</b> swaps the minutes for arrows so you can move steps up and down. <b>Insert</b> opens a slot between the steps, so you can add one in the middle instead of only at the end. Tap <b>Done</b> when you&rsquo;re finished.</p>
@@ -304,7 +425,7 @@ kbd {
   </section>
 
   <!-- Share -->
-  <section class="feature" id="2026-10-24-share">
+  <section class="feature" id="2026-10-24-share" data-toc="Share and import">
     <span class="feature__tag">New</span>
     <h3>Share, export and import templates</h3>
     <p>Tap <b>Share</b> on a template to send it as a link. Whoever opens the link is asked whether to add the template to their own list. To move everything at once, use <b>Export all</b> and <b>Import&hellip;</b> on the Templates tab.</p>
@@ -315,7 +436,7 @@ kbd {
   </section>
 
   <!-- Small things -->
-  <section class="smalls" id="2026-10-24-also-new">
+  <section class="smalls" id="2026-10-24-also-new" data-toc="Smaller improvements">
     <span class="feature__tag">Also new</span>
     <ul>
       <li><b>Templates remember the time</b><span>Loading &ldquo;School run&rdquo; sets 08:30 again. It only asks about the deadline when you reload the template you already have open.</span></li>
@@ -334,5 +455,103 @@ kbd {
   </section>
 
 </main>
+</div>
+
+<script>
+(() => {
+  document.documentElement.classList.add("js");
+  const bar = document.querySelector(".bar");
+  const menu = bar.querySelector(".bar__menu");
+  const label = bar.querySelector(".bar__label");
+  const date = bar.querySelector(".bar__date");
+  const side = document.querySelector(".side");
+
+  // Every [data-toc] section, grouped under its release date, newest first.
+  const groups = [...document.querySelectorAll(".release")].map((release) => {
+    const time = release.querySelector(".release__date time");
+    return {
+      date: time.textContent,
+      short: new Date(time.dateTime).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      items: [...release.querySelectorAll("[data-toc]")].map((el) => ({ el, name: el.dataset.toc })),
+    };
+  });
+  const items = groups.flatMap((group) => group.items.map((item) => ({ ...item, group })));
+
+  function list() {
+    const frag = document.createDocumentFragment();
+    const top = document.createElement("a");
+    top.className = "nav-top";
+    top.href = "#top";
+    top.textContent = "↑ Top of the page";
+    frag.append(top);
+    for (const group of groups) {
+      const box = document.createElement("div");
+      box.className = "nav-group";
+      const head = document.createElement("span");
+      head.className = "nav-date";
+      head.textContent = group.date;
+      const ol = document.createElement("ol");
+      ol.className = "nav-list";
+      for (const item of group.items) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = "#" + item.el.id;
+        a.textContent = item.name;
+        li.append(a);
+        ol.append(li);
+      }
+      box.append(head, ol);
+      frag.append(box);
+    }
+    return frag;
+  }
+  bar.querySelector(".bar__panel").append(list());
+  side.append(list());
+  bar.hidden = false;
+  side.hidden = false;
+
+  // Close the bar's list after a choice, on Escape, and on a tap elsewhere.
+  bar.addEventListener("click", (event) => {
+    if (event.target.closest("a")) menu.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && menu.open) {
+      menu.open = false;
+      menu.querySelector("summary").focus();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (menu.open && !bar.contains(event.target)) menu.open = false;
+  });
+
+  // The section you are in is the last one whose top has passed under the bar.
+  let current;
+  function update() {
+    const line = (bar.offsetHeight || 0) + 24;
+    let found = null;
+    for (const item of items) {
+      if (item.el.getBoundingClientRect().top <= line) found = item;
+    }
+    if (found === current) return;
+    current = found;
+    label.textContent = found ? found.name : "Release notes";
+    date.textContent = found ? found.group.short : "";
+    for (const a of document.querySelectorAll(".nav-list a")) {
+      a.setAttribute("aria-current", String(found !== null && a.hash === "#" + found.el.id));
+    }
+  }
+  let queued = false;
+  addEventListener("scroll", () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      update();
+    });
+  }, { passive: true });
+  addEventListener("resize", update);
+  update();
+})();
+</script>
 </body>
 </html>
