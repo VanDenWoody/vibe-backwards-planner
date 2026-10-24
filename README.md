@@ -55,6 +55,15 @@ seconds, so Undo can splice it back at the index it came from. Clearing every
 step takes the same path, which is why it needs no confirmation dialog. A
 pending undo is never persisted: reloading inside the window is a real delete.
 
+Steps are reordered in a Reorder mode rather than by dragging: native drag and
+drop does not work on Android, and plans are short enough that one place per tap
+is quick. The mode swaps each row's minutes and delete for full-size up and down
+arrows, so the row never has to fit five controls on a phone. The arrows are
+always in the DOM and shown only by a class, so entering the mode drops no
+focus. A move is not undoable, since the other arrow takes it back, and the mode
+is not persisted: it ends on leaving the tab, on reload, or when fewer than two
+steps remain.
+
 Templates live in their own store beside the plan, so the plan's shape and version
 never had to move. A template is a recipe rather than a plan: a name, the
 deadline's caption and the step list, but no date or time, since that is exactly
