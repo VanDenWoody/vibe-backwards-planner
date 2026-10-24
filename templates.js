@@ -1,4 +1,4 @@
-import { createStep } from "./plan.js";
+import { createStep, orderSteps } from "./plan.js";
 
 export const TEMPLATES_VERSION = 1;
 
@@ -13,7 +13,7 @@ function normalizeSteps(raw) {
   for (const step of raw) {
     if (step === null || typeof step !== "object") return null;
     if (typeof step.label !== "string") return null;
-    if (!Number.isFinite(step.minutes) || step.minutes < 0) return null;
+    if (!Number.isFinite(step.minutes)) return null;
     steps.push({ label: step.label, minutes: step.minutes });
   }
   return steps;
@@ -117,5 +117,5 @@ export function removeTemplate(library, id) {
 // The inverse of createTemplate: fresh plan steps, so the same template can be
 // loaded repeatedly without two rows ever sharing an id.
 export function planStepsFrom(template) {
-  return template.steps.map((step) => createStep(step.label, step.minutes));
+  return orderSteps(template.steps.map((step) => createStep(step.label, step.minutes)));
 }

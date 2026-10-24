@@ -1,5 +1,5 @@
 import { computeSchedule } from "./schedule.js";
-import { coerceMinutes, createStep, emptyPlan, insertStep, moveStep } from "./plan.js";
+import { coerceMinutes, createStep, emptyPlan, insertStep, moveStep, orderSteps } from "./plan.js";
 import {
   createTemplate,
   findTemplate,
@@ -152,10 +152,10 @@ function renderStructure() {
 
     const minutes = document.createElement("input");
     minutes.className = "step__minutes";
+    // No min and no inputmode="numeric": a negative number is a step of the
+    // person you meet, and the numeric pad on Android has no minus key.
     minutes.type = "number";
-    minutes.min = "0";
     minutes.step = "1";
-    minutes.inputMode = "numeric";
     minutes.value = String(step.minutes);
     minutes.placeholder = "0";
     minutes.setAttribute("aria-label", "Minutes");
@@ -172,12 +172,19 @@ function renderStructure() {
 
     // Always built and shown only in reorder mode, so entering the mode is a
     // class change rather than a rebuild that would drop focus.
+    // A step never moves across the meet line, so the arrow that would take
+    // it there is off, as it is at either end of the list.
+    const theirs = (other) => other !== undefined && other.minutes < 0 === step.minutes < 0;
     const up = moveButton("up", "▲");
     const down = moveButton("down", "▼");
-    up.disabled = index === 0;
-    down.disabled = index === state.steps.length - 1;
+    up.disabled = !theirs(state.steps[index - 1]);
+    down.disabled = !theirs(state.steps[index + 1]);
 
-    li.append(time, label, minutes, unit, remove, up, down);
+    // Shown under the last negative step only; renderTimes picks the row.
+    const meet = document.createElement("span");
+    meet.className = "step__meet";
+
+    li.append(time, label, minutes, unit, remove, up, down, meet);
     nameMoveButtons(li, step.label);
     stepsEl.append(li);
   }
@@ -217,9 +224,7 @@ function insertSlot(index) {
   const minutes = document.createElement("input");
   minutes.className = "add-step__minutes insert-slot__minutes";
   minutes.type = "number";
-  minutes.min = "0";
   minutes.step = "1";
-  minutes.inputMode = "numeric";
   minutes.placeholder = "min";
   minutes.setAttribute("aria-label", "Minutes");
 
@@ -294,7 +299,8 @@ function setInserting(next) {
 }
 
 function renderTimes() {
-  const { deadlineAt, rows, leaveAt, leaveDayOffset, totalMinutes } = computeSchedule(state);
+  const { deadlineAt, rows, meetAt, meetDayOffset, leaveAt, leaveDayOffset, totalMinutes } =
+    computeSchedule(state);
   const hasDeadline = deadlineAt !== null;
   const hasSteps = state.steps.length > 0;
 
@@ -319,12 +325,30 @@ function renderTimes() {
   hintEl.hidden = hasDeadline && hasSteps;
 
   const byId = new Map(rows.map((row) => [row.id, row]));
+  const lastTheirs = rows.findLast((row) => row.minutes < 0);
 
   for (const li of stepRows()) {
     const row = byId.get(li.dataset.id);
-    li.querySelector(".step__time").textContent =
-      row && hasDeadline ? formatAt(row.startsAt, row.dayOffset !== 0) : "";
+    const theirs = row !== undefined && row.minutes < 0;
+    // A negative step runs forward, so its row shows when it ends, with when
+    // it began underneath. Your steps show when they start, as always.
+    const time = li.querySelector(".step__time");
+    if (row && hasDeadline && theirs) {
+      const from = document.createElement("span");
+      from.className = "step__from";
+      from.textContent = `from ${timeFmt.format(row.startsAt)}`;
+      time.replaceChildren(formatAt(row.endsAt, row.dayOffset !== 0), from);
+    } else {
+      time.textContent = row && hasDeadline ? formatAt(row.startsAt, row.dayOffset !== 0) : "";
+    }
     li.classList.toggle("step--zero", row ? row.minutes === 0 : false);
+    li.classList.toggle("step--theirs", theirs);
+
+    const meets = hasDeadline && row !== undefined && row === lastTheirs;
+    li.classList.toggle("step--meet", meets);
+    li.querySelector(".step__meet").textContent = meets
+      ? `Meet at ${formatAt(meetAt, meetDayOffset !== 0)}`
+      : "";
   }
 
   // With no steps the leave time only restates the deadline, so it is hidden.
@@ -348,7 +372,8 @@ function setActive(id) {
 function summarize(template) {
   const count = template.steps.length;
   if (count === 0) return "No steps";
-  const total = template.steps.reduce((sum, step) => sum + step.minutes, 0);
+  // Your own time, as on the leave line: negative steps are someone else's.
+  const total = template.steps.reduce((sum, step) => sum + Math.max(0, step.minutes), 0);
   return `${count} step${count === 1 ? "" : "s"} · ${formatDuration(total)}`;
 }
 
@@ -625,6 +650,31 @@ stepsEl.addEventListener("input", (event) => {
   renderTimes();
 });
 
+// While typing, a step stays where it is: moving the row would take the caret
+// with it. Once the value is committed, a step whose sign changed moves to its
+// side of the meet line. The move waits a tick, until focus has gone wherever
+// Tab or a tap sent it, and then follows that field into the rebuilt rows.
+stepsEl.addEventListener("change", (event) => {
+  if (!event.target.classList.contains("step__minutes")) return;
+  window.setTimeout(() => {
+    const ordered = orderSteps(state.steps);
+    if (ordered.every((step, index) => step === state.steps[index])) return;
+
+    const active = document.activeElement;
+    const activeRow = active?.closest?.("li.step");
+    const focusId = activeRow?.dataset.id;
+    const focusClass = focusId === undefined ? null : [...active.classList].find((c) => c.startsWith("step__"));
+
+    state.steps = ordered;
+    savePlan(state);
+    render();
+
+    if (focusId !== undefined && focusClass !== undefined) {
+      stepsEl.querySelector(`li.step[data-id="${focusId}"] .${focusClass}`)?.focus();
+    }
+  }, 0);
+});
+
 stepsEl.addEventListener("click", (event) => {
   const open = event.target.closest("button.insert-slot__open");
   if (open !== null) {
@@ -652,6 +702,7 @@ stepsEl.addEventListener("click", (event) => {
   const name = removed.label.trim();
   beginPending(name === "" ? "Deleted a step" : `Deleted “${name}”`, () => {
     state.steps.splice(Math.min(index, state.steps.length), 0, removed);
+    state.steps = orderSteps(state.steps);
     savePlan(state);
     render();
     focusDeleteAt(index);
@@ -705,12 +756,13 @@ function addFromSlot({ keepOpen }) {
     return false;
   }
 
-  const index = insertAt;
-  state.steps = insertStep(state.steps, index, createStep(label, form.querySelector(".insert-slot__minutes").value));
+  const step = createStep(label, form.querySelector(".insert-slot__minutes").value);
+  state.steps = orderSteps(insertStep(state.steps, insertAt, step));
   savePlan(state);
   if (!keepOpen) return true;
 
-  insertAt = index + 1;
+  // A negative step may have jumped above the meet line; the form follows it.
+  insertAt = state.steps.indexOf(step) + 1;
   render();
   stepsEl.querySelector(".insert-slot__label").focus();
   return true;
@@ -778,7 +830,7 @@ addStepEl.addEventListener("submit", (event) => {
     return;
   }
 
-  state.steps.push(createStep(label, newMinutesEl.value));
+  state.steps = orderSteps([...state.steps, createStep(label, newMinutesEl.value)]);
   savePlan(state);
   render();
 

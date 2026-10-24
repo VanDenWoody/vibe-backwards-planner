@@ -68,7 +68,7 @@ test("normalizeLibrary drops only the malformed items, keeping the rest", () => 
       { id: "t2", name: 5, steps: [] },
       { id: "t3", name: "Bad steps", steps: "nope" },
       { id: "t4", name: "Bad step", steps: [{ label: "x", minutes: "30" }] },
-      { id: "t5", name: "Negative", steps: [{ label: "x", minutes: -1 }] },
+      { id: "t5", name: "Infinite", steps: [{ label: "x", minutes: -Infinity }] },
       { id: "t1", name: "Duplicate id", steps: [] },
     ],
   });
@@ -223,4 +223,12 @@ test("planStepsFrom mints fresh ids, so loading twice never collides", () => {
 test("planStepsFrom gives minutes the real numbers computeSchedule needs", () => {
   const template = createTemplate("Airport run", "", [{ id: "s1", label: "Check in", minutes: 45 }]);
   assert.equal(typeof planStepsFrom(template)[0].minutes, "number");
+});
+
+test("planStepsFrom puts negative steps on top", () => {
+  const template = createTemplate("Pickup", "Lands", [
+    { label: "Drive", minutes: 45 },
+    { label: "Passport queue", minutes: -25 },
+  ]);
+  assert.deepEqual(planStepsFrom(template).map((s) => s.minutes), [-25, 45]);
 });
