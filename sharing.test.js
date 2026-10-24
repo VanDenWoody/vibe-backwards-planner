@@ -156,6 +156,7 @@ test("addImported as replace keeps the clash's id, position and spelling", () =>
     name: "Airport run",
     deadlineLabel: "Boarding",
     steps: [{ label: "Taxi", minutes: 20 }],
+    updatedAt: 0,
   });
   assert.equal(result.items[1], dinner);
 });
