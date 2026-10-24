@@ -5,6 +5,7 @@ import {
   addImported,
   encodeTemplate,
   decodeTemplate,
+  EXPORT_VERSION,
   exportLibrary,
   parseExportFile,
   readSharedLink,
@@ -93,10 +94,30 @@ test("exportLibrary round-trips through parseExportFile", () => {
   assert.deepEqual(parsed[0].steps, airport.steps);
 });
 
-test("exportLibrary writes the same shape the app stores", () => {
-  const raw = JSON.parse(exportLibrary(libraryOf(airport)));
-  assert.equal(raw.version, TEMPLATES_VERSION);
-  assert.equal(raw.items.length, 1);
+test("exportLibrary writes version 1 without updatedAt or tombstones", () => {
+  const library = {
+    version: TEMPLATES_VERSION,
+    items: [{ ...airport, updatedAt: 123 }],
+    tombstones: [{ id: "gone", deletedAt: 5 }],
+  };
+  const raw = JSON.parse(exportLibrary(library));
+  assert.equal(EXPORT_VERSION, 1);
+  assert.deepEqual(raw, {
+    version: 1,
+    items: [{ id: airport.id, name: "Airport run", deadlineLabel: "Flight departs", steps: airport.steps }],
+  });
+});
+
+test("an export round-trips through parseExportFile", () => {
+  const library = libraryOf({ ...airport, updatedAt: 9 }, createTemplate("Dinner", "Eat", [{ label: "Cook", minutes: 30 }]));
+  assert.deepEqual(parseExportFile(exportLibrary(library)), [
+    { name: "Airport run", deadlineLabel: "Flight departs", steps: airport.steps },
+    { name: "Dinner", deadlineLabel: "Eat", steps: [{ label: "Cook", minutes: 30 }] },
+  ]);
+});
+
+test("parseExportFile refuses a version 2 library file", () => {
+  assert.equal(parseExportFile(JSON.stringify({ version: 2, items: [], tombstones: [] })), null);
 });
 
 test("parseExportFile returns null for a file that is not a template export", () => {
